@@ -4,8 +4,8 @@ version: 1.0.0
 homepage: https://github.com/Navid-Rahman/unused_code_cleaner
 
 environment:
-  sdk: ^3.8.1
-  flutter: ">=1.17.0"
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.0.0"
 
 dependencies:
   flutter:
