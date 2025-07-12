@@ -4,6 +4,7 @@ import 'package:path/path.dart' as path;
 import '../models/unused_item.dart';
 import '../utils/logger.dart';
 import '../utils/file_utils.dart';
+import '../utils/pattern_matcher.dart';
 import '../models/cleanup_options.dart';
 
 /// Analyzes Dart files to identify unused files within a project.
@@ -36,8 +37,7 @@ class FileAnalyzer {
         final relativePath = path.relative(file.path, from: projectPath);
 
         // Skip excluded files
-        if (options.excludePatterns
-            .any((pattern) => relativePath.contains(pattern))) {
+        if (PatternMatcher.isExcluded(relativePath, options.excludePatterns)) {
           continue;
         }
 
@@ -75,8 +75,7 @@ class FileAnalyzer {
 
     for (final file in dartFiles) {
       // Skip excluded files
-      if (options.excludePatterns
-          .any((pattern) => file.path.contains(pattern))) {
+      if (PatternMatcher.isExcluded(file.path, options.excludePatterns)) {
         continue;
       }
 

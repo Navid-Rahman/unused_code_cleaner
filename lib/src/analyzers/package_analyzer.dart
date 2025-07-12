@@ -4,6 +4,7 @@ import 'package:yaml/yaml.dart';
 
 import '../models/unused_item.dart';
 import '../utils/logger.dart';
+import '../utils/pattern_matcher.dart';
 import '../models/cleanup_options.dart';
 
 /// Analyzes package dependencies to identify unused packages within a Dart/Flutter project.
@@ -83,8 +84,7 @@ class PackageAnalyzer {
 
     for (final file in dartFiles) {
       // Skip excluded files
-      if (options.excludePatterns
-          .any((pattern) => file.path.contains(pattern))) {
+      if (PatternMatcher.isExcluded(file.path, options.excludePatterns)) {
         continue;
       }
 

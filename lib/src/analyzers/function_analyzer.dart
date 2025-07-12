@@ -6,6 +6,7 @@ import 'package:analyzer/dart/ast/visitor.dart';
 
 import '../models/unused_item.dart';
 import '../utils/logger.dart';
+import '../utils/pattern_matcher.dart';
 import '../models/cleanup_options.dart';
 
 /// Analyzes Dart files to identify unused functions and methods.
@@ -39,8 +40,7 @@ class FunctionAnalyzer {
 
       for (final file in dartFiles) {
         // Skip excluded files
-        if (options.excludePatterns
-            .any((pattern) => file.path.contains(pattern))) {
+        if (PatternMatcher.isExcluded(file.path, options.excludePatterns)) {
           continue;
         }
 

@@ -5,6 +5,7 @@ import 'package:yaml/yaml.dart';
 import '../models/unused_item.dart';
 import '../utils/logger.dart';
 import '../utils/file_utils.dart';
+import '../utils/pattern_matcher.dart';
 import '../models/cleanup_options.dart';
 
 /// Analyzes asset files to identify unused assets within a Flutter/Dart project.
@@ -40,8 +41,7 @@ class AssetAnalyzer {
         final relativePath = path.relative(assetFile.path, from: projectPath);
 
         // Skip excluded patterns
-        if (options.excludePatterns
-            .any((pattern) => relativePath.contains(pattern))) {
+        if (PatternMatcher.isExcluded(relativePath, options.excludePatterns)) {
           continue;
         }
 
