@@ -1,0 +1,26 @@
+name: unused_code_cleaner_example
+description: Example project demonstrating unused_code_cleaner functionality
+version: 1.0.0+1
+publish_to: "none" # This is an example project, not published
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  unused_code_cleaner:
+    path: ../
+  http: ^1.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/used.png
+    - assets/unused.png
