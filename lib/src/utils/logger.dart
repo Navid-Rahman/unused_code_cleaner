@@ -41,7 +41,7 @@ class Logger {
   static bool _verbose = false;
 
   /// Whether the terminal supports ANSI color codes
-  static bool _supportsColor = stdout.supportsAnsiEscapes;
+  static final bool _supportsColor = stdout.supportsAnsiEscapes;
 
   /// Enables or disables verbose logging mode for debug messages.
   static void setVerbose(bool verbose) {

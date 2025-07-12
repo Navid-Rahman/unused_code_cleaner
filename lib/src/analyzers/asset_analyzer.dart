@@ -176,9 +176,9 @@ class AssetAnalyzer {
         final startIndex =
             line.indexOf('AssetImage(') + 11; // Length of 'AssetImage('
         final remaining = line.substring(startIndex);
-        final firstQuote = remaining.indexOf('"') == -1
-            ? remaining.indexOf("'")
-            : remaining.indexOf('"');
+        final firstQuote = remaining.contains('"')
+            ? remaining.indexOf('"')
+            : remaining.indexOf("'");
         if (firstQuote != -1) {
           final quote = remaining[firstQuote];
           final endQuote = remaining.indexOf(quote, firstQuote + 1);
@@ -199,9 +199,9 @@ class AssetAnalyzer {
         final startIndex =
             line.indexOf('Image.asset(') + 12; // Length of 'Image.asset('
         final remaining = line.substring(startIndex);
-        final firstQuote = remaining.indexOf('"') == -1
-            ? remaining.indexOf("'")
-            : remaining.indexOf('"');
+        final firstQuote = remaining.contains('"')
+            ? remaining.indexOf('"')
+            : remaining.indexOf("'");
         if (firstQuote != -1) {
           final quote = remaining[firstQuote];
           final endQuote = remaining.indexOf(quote, firstQuote + 1);

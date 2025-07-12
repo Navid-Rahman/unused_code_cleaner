@@ -10,8 +10,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: const MyHomePage(),
+    return const MaterialApp(
+      home: MyHomePage(),
     );
   }
 }
@@ -42,7 +42,8 @@ class MyHomePage extends StatelessWidget {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Found ${result.totalUnusedItems} unused items'),
+                      content:
+                          Text('Found ${result.totalUnusedItems} unused items'),
                     ),
                   );
                 }

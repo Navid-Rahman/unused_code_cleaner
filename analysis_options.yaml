@@ -1,4 +1,33 @@
 include: package:flutter_lints/flutter.yaml
 
-# Additional information about this file can be found at
-# https://dart.dev/guides/language/analysis-options
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/generated/**"
+    - "example/assets/**"
+  errors:
+    missing_required_param: error
+    invalid_use_of_protected_member: error
+    deprecated_member_use: warning
+    # Allow print statements in CLI tools and loggers
+    avoid_print: ignore
+    # Allow missing assets in example (they're for demonstration)
+    asset_does_not_exist: ignore
+    # Allow dangling library comments in tests
+    dangling_library_doc_comments: ignore
+    # Allow unnecessary library names
+    unnecessary_library_name: ignore
+    # Disable const constructor warnings in tests and examples
+    prefer_const_constructors: ignore
+
+linter:
+  rules:
+    - always_declare_return_types
+    - prefer_final_fields
+    - use_key_in_widget_constructors
+    - prefer_contains
+    - unnecessary_library_name
+    # Don't enforce these rules for CLI/test code
+    # - avoid_print
+    # - prefer_const_constructors
