@@ -29,3 +29,12 @@ migrate_working_dir/
 .flutter-plugins
 .flutter-plugins-dependencies
 build/
+
+# Additional Dart/Flutter entries
+.packages
+*.g.dart
+*.freezed.dart
+*.gr.dart
+.pub-cache/
+.pub/
+coverage/
