@@ -14,6 +14,9 @@ dependencies:
     path: ../
   http: ^1.0.0
 
+dependency_overrides:
+  collection: 1.18.0  # Match Flutter SDK constraint
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
