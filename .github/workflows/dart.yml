@@ -38,7 +38,7 @@ jobs:
       - name: Analyze project source
         run: |
           mv example example_temp || true
-          dart analyze
+          dart analyze --fatal-infos lib/ bin/ test/
           mv example_temp example || true
 
       - name: Run tests
