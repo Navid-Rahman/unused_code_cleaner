@@ -25,38 +25,66 @@ Add the package to your `dev_dependencies` in `pubspec.yaml`:
 ```yaml
 dev_dependencies:
   unused_code_cleaner: ^1.0.0
+```
 
 Then, fetch the dependencies:
+
+```bash
 dart pub get
+```
 
 To use as a command-line tool, activate it globally:
-dart pub global activate unused_code_cleaner
 
-🔧 Usage
-Command Line
+```bash
+dart pub global activate unused_code_cleaner
+```
+
+## 🔧 Usage
+
+### Command Line
+
 Analyze your project for unused items:
+
+```bash
 unused_code_cleaner
+```
 
 Remove all unused items (interactive mode):
+
+```bash
 unused_code_cleaner --all
+```
 
 Remove specific types of unused items:
+
+```bash
 unused_code_cleaner --assets --packages
+```
 
 Enable verbose logging:
+
+```bash
 unused_code_cleaner --verbose
+```
 
 Exclude specific patterns:
+
+```bash
 unused_code_cleaner --exclude "**/*.g.dart" --exclude "**/*.freezed.dart"
+```
 
 Specify a custom project path:
+
+```bash
 unused_code_cleaner --path=/path/to/your/project
+```
 
-Simulate cleanup without deleting (dry run):
-unused_code_cleaner --all --keep-unused
+### Programmatic Usage
 
-Programmatic Usage
 Use the package in your Dart code:
+
+````dart
+```dart
 import 'package:unused_code_cleaner/unused_code_cleaner.dart';
 
 void main() async {
@@ -76,58 +104,28 @@ void main() async {
     print('Error: $e');
   }
 }
+````
 
-🛠 Advanced Options
+## 🛠 Advanced Options
 
+| Option          | Description                                                              |
+| --------------- | ------------------------------------------------------------------------ |
+| `--all`         | Enables removal of all unused items (assets, functions, packages, files) |
+| `--assets`      | Removes unused assets                                                    |
+| `--functions`   | Removes unused functions                                                 |
+| `--packages`    | Removes unused packages from pubspec.yaml                                |
+| `--files`       | Removes unused Dart files                                                |
+| `--verbose`     | Enables detailed logging                                                 |
+| `--interactive` | Prompts for confirmation before removing items (default: true)           |
+| `--exclude`     | Specifies patterns to exclude (e.g., \*_/_.g.dart)                       |
+| `--path`        | Specifies the project directory to analyze (default: current directory)  |
 
+## 🛠 Configuration File
 
-Option
-Description
+Create an `unused_code_cleaner.yaml` file in your project root for advanced configuration:
 
-
-
---all
-Enables removal of all unused items (assets, functions, packages, files).
-
-
---assets
-Removes unused assets.
-
-
---functions
-Removes unused functions (not fully implemented).
-
-
---packages
-Removes unused packages from pubspec.yaml.
-
-
---files
-Removes unused Dart files.
-
-
---verbose
-Enables detailed logging.
-
-
---interactive
-Prompts for confirmation before removing items (default: true).
-
-
---exclude
-Specifies patterns to exclude (e.g., **/*.g.dart).
-
-
---path
-Specifies the project directory to analyze (default: current directory).
-
-
---keep-unused
-Simulates the process without deleting any items (dry run).
-
-
-🛠 Configuration File
-Create an unused_code_cleaner.yaml file in your project root for advanced configuration:
+````yaml
+```yaml
 analysis:
   verbose: true
   interactive: true
@@ -138,6 +136,7 @@ analysis:
   include_paths:
     - lib/
     - test/
+
 assets:
   enabled: true
   directories:
@@ -145,24 +144,30 @@ assets:
     - images/
     - fonts/
     - data/
+
 functions:
   enabled: true
   preserve:
     - main
     - build
     - initState
+
 packages:
   enabled: true
   preserve:
     - flutter
     - flutter_test
+
 files:
   enabled: true
   preserve:
     - lib/main.dart
     - test/**
+````
 
-💡 Example Output
+## 💡 Example Output
+
+```
 🔍 UNUSED CODE CLEANER - ANALYSIS STARTED
 ℹ️ [12:34:56] Found 42 Dart files to analyze
 ✅ [12:34:56] Project structure validated
@@ -194,64 +199,44 @@ Unused Assets (3 items)
 └──────────────────────────────────────────────────┘
 
 ❓ Do you want to remove these assets? (y/N)
+```
 
-📊 Accuracy Testing Methodology
+## 📊 Accuracy Testing
+
 The package was tested against real-world Flutter projects to ensure reliability:
 
-
-
-Project
-Total Files
-Total Assets
-Known Unused
-Language Files
-
-
-
-🛒 E-commerce
-1,500
-245
-32
-3 (en, fr, es)
-
-
-📱 Social App
-3,200
-412
-67
-5 (en, es, pt, ru, zh)
-
-
-🏢 Enterprise
-10,000
-1,123
-189
-8 (multi-region)
-
+| Project       | Total Files | Total Assets | Known Unused | Language Files         |
+| ------------- | ----------- | ------------ | ------------ | ---------------------- |
+| 🛒 E-commerce | 1,500       | 245          | 32           | 3 (en, fr, es)         |
+| 📱 Social App | 3,200       | 412          | 67           | 5 (en, es, pt, ru, zh) |
+| 🏢 Enterprise | 10,000      | 1,123        | 189          | 8 (multi-region)       |
 
 Tests confirmed accurate detection of unused assets, functions, packages, and files, with robust handling of edge cases like generated files and special functions.
-🎯 Roadmap
-🚀 Upcoming Features:
 
-❌ Support for automatic function removal using AST manipulation.
-❌ Integration with CI/CD pipelines for automated cleanup.
-❌ Support for additional file types (e.g., TypeScript, Kotlin).
-❌ Generate detailed HTML/PDF reports.
-❌ VS Code extension for real-time analysis.
+## 🎯 Roadmap
 
-🤝 Contributing
+### 🚀 Upcoming Features:
+
+- ✅ Support for automatic function removal using AST manipulation
+- ❌ Integration with CI/CD pipelines for automated cleanup
+- ❌ Support for additional file types (e.g., TypeScript, Kotlin)
+- ❌ Generate detailed HTML/PDF reports
+- ❌ VS Code extension for real-time analysis
+
+## 🤝 Contributing
+
 We welcome contributions! Please submit issues, feature requests, or pull requests on GitHub. Follow these steps:
 
-Fork the repository.
-Create a feature branch (git checkout -b feature/your-feature).
-Commit your changes (git commit -m "Add your feature").
-Push to the branch (git push origin feature/your-feature).
-Open a pull request.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/your-feature`)
+3. Commit your changes (`git commit -m "Add your feature"`)
+4. Push to the branch (`git push origin feature/your-feature`)
+5. Open a pull request
 
-📬 Contact
+## 📬 Contact
+
 📩 Need help? Reach out at [your.email@example.com] or open an issue on GitHub.
-☕ Support
-If you find this package useful, consider supporting its development:
 
-📜 License
+## 📜 License
+
 📄 This project is licensed under the MIT License.
