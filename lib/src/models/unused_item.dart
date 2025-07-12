@@ -1,13 +1,16 @@
 /// Enumeration of different types of unused items that can be detected.
-enum UnusedItemType { 
+enum UnusedItemType {
   /// An unused asset file (image, font, etc.)
-  asset, 
+  asset,
+
   /// An unused Dart function or method
-  function, 
+  function,
+
   /// An unused package dependency
-  package, 
+  package,
+
   /// An unused Dart file
-  file 
+  file
 }
 
 /// Represents a single unused item discovered during code analysis.
