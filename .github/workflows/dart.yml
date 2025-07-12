@@ -7,9 +7,9 @@ name: Dart
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   # Main package testing (pure Dart)
@@ -23,21 +23,36 @@ jobs:
       - uses: dart-lang/setup-dart@9a04e6d73cca37bd455e0608d7e5092f881fd603
 
       - name: Install dependencies for main package
-        run: dart pub get
+        run: |
+          # Temporarily rename example to avoid dependency resolution conflicts
+          mv example example_temp || true
+          dart pub get
+          mv example_temp example || true
 
       - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed .
+        run: |
+          mv example example_temp || true
+          dart format --output=none --set-exit-if-changed .
+          mv example_temp example || true
 
       - name: Analyze project source
-        run: dart analyze
+        run: |
+          mv example example_temp || true
+          dart analyze
+          mv example_temp example || true
 
       - name: Run tests
-        run: dart test
+        run: |
+          mv example example_temp || true
+          dart test
+          mv example_temp example || true
 
       - name: Test CLI tool activation
         run: |
+          mv example example_temp || true
           dart pub global activate --source path .
           dart pub global run unused_code_cleaner --help
+          mv example_temp example || true
 
   # Example app testing (requires Flutter)
   test-flutter-example:
@@ -51,8 +66,8 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
-          channel: 'stable'
+          flutter-version: "3.24.0"
+          channel: "stable"
 
       - name: Install dependencies for Flutter example
         working-directory: example
