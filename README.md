@@ -218,7 +218,7 @@ Tests confirmed accurate detection of unused assets, functions, packages, and fi
 ### 🚀 Upcoming Features:
 
 - ✅ Support for automatic function removal using AST manipulation
-- ❌ Integration with CI/CD pipelines for automated cleanup
+- ✅ Integration with CI/CD pipelines for automated cleanup
 - ❌ Support for additional file types (e.g., TypeScript, Kotlin)
 - ❌ Generate detailed HTML/PDF reports
 - ❌ VS Code extension for real-time analysis
