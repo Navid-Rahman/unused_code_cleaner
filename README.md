@@ -235,7 +235,7 @@ We welcome contributions! Please submit issues, feature requests, or pull reques
 
 ## 📬 Contact
 
-📩 Need help? Reach out at [your.email@example.com] or open an issue on GitHub.
+📩 Need help? Reach out at [navidrahman92@gmail.com] or open an issue on GitHub.
 
 ## 📜 License
 
