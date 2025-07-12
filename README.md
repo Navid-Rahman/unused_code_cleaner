@@ -4,7 +4,7 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/yourusername/unused_code_cleaner/pulls)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A powerful Flutter package to identify and remove unused assets, functions, packages, and files from your project, keeping your codebase clean and optimized with beautiful colored logging.
+A powerful Dart CLI tool to identify and remove unused assets, functions, packages, and files from your Flutter and Dart projects, keeping your codebase clean and optimized with beautiful colored logging.
 
 🚀 **Features**
 
@@ -16,11 +16,17 @@ A powerful Flutter package to identify and remove unused assets, functions, pack
 - 🔧 **Interactive Mode**: Prompts for confirmation before removing unused items.
 - 📊 **Detailed Reports**: Generates comprehensive analysis reports with file sizes and descriptions.
 - 🛠 **Customizable**: Supports exclude patterns, include paths, and configuration via `unused_code_cleaner.yaml`.
-- ✅ **Cross-Platform**: Works seamlessly with Flutter projects on all platforms.
+- ✅ **Cross-Platform**: Works seamlessly with Flutter and Dart projects on all platforms.
 
 📦 **Installation**
 
-Add the package to your `dev_dependencies` in `pubspec.yaml`:
+For use as a command-line tool, activate it globally:
+
+```bash
+dart pub global activate unused_code_cleaner
+```
+
+Or add it to your `dev_dependencies` in `pubspec.yaml` for project-specific use:
 
 ```yaml
 dev_dependencies:
@@ -31,12 +37,6 @@ Then, fetch the dependencies:
 
 ```bash
 dart pub get
-```
-
-To use as a command-line tool, activate it globally:
-
-```bash
-dart pub global activate unused_code_cleaner
 ```
 
 ## 🔧 Usage
@@ -215,13 +215,22 @@ Tests confirmed accurate detection of unused assets, functions, packages, and fi
 
 ## 🎯 Roadmap
 
-### 🚀 Upcoming Features:
+### 🚀 Completed Features:
 
 - ✅ Support for automatic function removal using AST manipulation
 - ✅ Integration with CI/CD pipelines for automated cleanup
+- ✅ Comprehensive documentation and examples
+- ✅ Pure Dart CLI tool (no Flutter SDK dependency)
+- ✅ Pattern-based exclusion system
+- ✅ Interactive and non-interactive modes
+
+### 📋 Upcoming Features:
+
 - ❌ Support for additional file types (e.g., TypeScript, Kotlin)
 - ❌ Generate detailed HTML/PDF reports
 - ❌ VS Code extension for real-time analysis
+- ❌ Integration with popular CI/CD platforms (GitHub Actions, GitLab CI)
+- ❌ Batch processing for multiple projects
 
 ## 🤝 Contributing
 
