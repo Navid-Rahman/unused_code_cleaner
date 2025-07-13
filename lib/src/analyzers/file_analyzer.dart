@@ -136,16 +136,25 @@ class FileAnalyzer {
   /// [relativePath] - Relative path of the file from project root
   /// Returns true if the file is special and should be kept, false otherwise.
   bool _isSpecialFile(String relativePath) {
-    // Don't mark these as unused
-    final specialFiles = {
-      'lib/main.dart',
-      'test/',
-      '.g.dart',
-      '.freezed.dart',
-      '.gr.dart',
-      'generated_plugin_registrant.dart',
-    };
+    // Normalize path separators for cross-platform compatibility
+    final normalizedPath = relativePath.replaceAll('\\', '/');
 
-    return specialFiles.any((special) => relativePath.contains(special));
+    // Don't mark these as unused - using more specific matching
+    if (normalizedPath == 'lib/main.dart') return true;
+    if (normalizedPath.startsWith('test/')) return true;
+    if (normalizedPath.endsWith('.g.dart')) return true;
+    if (normalizedPath.endsWith('.freezed.dart')) return true;
+    if (normalizedPath.endsWith('.gr.dart')) return true;
+    if (normalizedPath.endsWith('generated_plugin_registrant.dart'))
+      return true;
+    if (normalizedPath.startsWith('lib/generated/')) return true;
+    if (normalizedPath.contains('/generated/')) return true;
+
+    // Protect important app files
+    if (normalizedPath.startsWith('lib/main')) return true;
+    if (normalizedPath.startsWith('lib/app')) return true;
+    if (normalizedPath.contains('main.dart')) return true;
+
+    return false;
   }
 }

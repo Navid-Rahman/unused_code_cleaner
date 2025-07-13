@@ -11,6 +11,37 @@ import 'package:path/path.dart' as path;
 
 /// Utility class for glob pattern matching and path filtering.
 class PatternMatcher {
+  /// Default patterns that should always be excluded for safety.
+  static const List<String> defaultExcludePatterns = [
+    '.git/**',
+    '.dart_tool/**',
+    'build/**',
+    '.packages',
+    'pubspec.lock',
+    '**/.DS_Store',
+    '**/Thumbs.db',
+    '**/*.g.dart',
+    '**/*.freezed.dart',
+    '**/*.gr.dart',
+    '**/generated/**',
+    '**/l10n/**',
+  ];
+
+  /// Critical system directories that should never be analyzed.
+  static const List<String> systemExcludePatterns = [
+    'C:/**',
+    'C:/Windows/**',
+    'C:/Program Files/**',
+    'C:/Program Files (x86)/**',
+    'C:/Users/*/AppData/**',
+    'C:/ProgramData/**',
+    '/System/**',
+    '/usr/**',
+    '/bin/**',
+    '/sbin/**',
+    '/etc/**',
+  ];
+
   /// Checks if a file path matches any of the provided glob patterns.
   static bool matches(String filePath, List<String> patterns) {
     for (final pattern in patterns) {
@@ -23,8 +54,14 @@ class PatternMatcher {
   }
 
   /// Determines if a file should be excluded from analysis.
+  /// Always includes default safety patterns.
   static bool isExcluded(String filePath, List<String> excludePatterns) {
-    return matches(filePath, excludePatterns);
+    final allExcludePatterns = [
+      ...defaultExcludePatterns,
+      ...systemExcludePatterns,
+      ...excludePatterns,
+    ];
+    return matches(filePath, allExcludePatterns);
   }
 
   /// Determines if a file should be included in analysis.

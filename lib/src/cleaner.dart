@@ -100,6 +100,10 @@ class UnusedCodeCleaner {
   /// Checks for required files and directories:
   /// - pubspec.yaml (project configuration)
   /// - lib/ directory (main source code)
+  ///
+  /// Safety checks:
+  /// - Prevents analysis of the unused_code_cleaner package itself
+  /// - Validates project structure
   Future<void> _validateProject(String projectPath) async {
     final pubspecFile = File(path.join(projectPath, 'pubspec.yaml'));
     if (!await pubspecFile.exists()) {
@@ -107,10 +111,35 @@ class UnusedCodeCleaner {
           'pubspec.yaml not found in $projectPath');
     }
 
+    // Critical safety check: prevent analyzing ourselves
+    final pubspecContent = await pubspecFile.readAsString();
+    if (pubspecContent.contains('name: unused_code_cleaner')) {
+      throw ProjectValidationException(
+          'Cannot analyze unused_code_cleaner package itself for safety reasons');
+    }
+
     final libDir = Directory(path.join(projectPath, 'lib'));
     if (!await libDir.exists()) {
       throw ProjectValidationException(
           'lib directory not found in $projectPath');
+    }
+
+    // Additional safety checks for critical system directories
+    final resolvedPath = path.normalize(path.absolute(projectPath));
+    final systemPaths = [
+      path.join(Platform.environment['USERPROFILE'] ?? '', 'Documents'),
+      path.join(Platform.environment['USERPROFILE'] ?? '', 'Desktop'),
+      'C:\\',
+      'C:\\Windows',
+      'C:\\Program Files',
+      'C:\\Users',
+    ];
+
+    for (final systemPath in systemPaths) {
+      if (resolvedPath == path.normalize(path.absolute(systemPath))) {
+        throw ProjectValidationException(
+            'Cannot analyze system directory: $resolvedPath');
+      }
     }
 
     Logger.success('Project structure validated');
@@ -228,13 +257,48 @@ class UnusedCodeCleaner {
       String itemType, List<UnusedItem> items, CleanupOptions options) async {
     if (!options.interactive) {
       Logger.info('Auto-removing unused $itemType...');
+
+      // CRITICAL SAFETY: Show detailed list before automatic removal
+      Logger.warning('⚠️  AUTOMATIC REMOVAL - Review these items:');
+      for (final item in items) {
+        Logger.warning('  - ${item.name} (${item.path})');
+      }
+
+      // Final safety check
+      stdout.write(
+          '❗ PROCEED WITH AUTOMATIC DELETION? Type "DELETE" to confirm: ');
+      final confirmation = stdin.readLineSync();
+      if (confirmation != 'DELETE') {
+        Logger.info('Automatic removal cancelled for safety');
+        return;
+      }
+
       await _removeItems(items);
     } else {
-      Logger.warning('Found ${items.length} unused $itemType');
-      stdout.write('Do you want to remove them? (y/N): ');
+      Logger.warning('Found ${items.length} unused $itemType:');
+
+      // Show detailed list of items to be removed
+      for (int i = 0; i < items.length && i < 10; i++) {
+        Logger.warning('  ${i + 1}. ${items[i].name} (${items[i].path})');
+      }
+      if (items.length > 10) {
+        Logger.warning('  ... and ${items.length - 10} more items');
+      }
+
+      stdout.write('❗ Do you want to remove these $itemType? (y/N): ');
       final input = stdin.readLineSync()?.toLowerCase();
 
       if (input == 'y' || input == 'yes') {
+        // Double confirmation for files/assets
+        if (itemType == 'files' || itemType == 'assets') {
+          stdout.write(
+              '⚠️  This will permanently DELETE files. Type "DELETE" to confirm: ');
+          final confirmation = stdin.readLineSync();
+          if (confirmation != 'DELETE') {
+            Logger.info('File deletion cancelled for safety');
+            return;
+          }
+        }
         await _removeItems(items);
       } else {
         Logger.info('Skipping removal of unused $itemType');
