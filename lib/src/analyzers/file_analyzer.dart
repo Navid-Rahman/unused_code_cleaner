@@ -145,8 +145,9 @@ class FileAnalyzer {
     if (normalizedPath.endsWith('.g.dart')) return true;
     if (normalizedPath.endsWith('.freezed.dart')) return true;
     if (normalizedPath.endsWith('.gr.dart')) return true;
-    if (normalizedPath.endsWith('generated_plugin_registrant.dart'))
+    if (normalizedPath.endsWith('generated_plugin_registrant.dart')) {
       return true;
+    }
     if (normalizedPath.startsWith('lib/generated/')) return true;
     if (normalizedPath.contains('/generated/')) return true;
 
