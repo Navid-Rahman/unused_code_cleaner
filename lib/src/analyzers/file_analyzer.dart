@@ -151,10 +151,10 @@ class FileAnalyzer {
     if (normalizedPath.startsWith('lib/generated/')) return true;
     if (normalizedPath.contains('/generated/')) return true;
 
-    // Protect important app files
+    // Protect important app files - using more specific matching
     if (normalizedPath.startsWith('lib/main')) return true;
     if (normalizedPath.startsWith('lib/app')) return true;
-    if (normalizedPath.contains('main.dart')) return true;
+    if (normalizedPath.endsWith('/main.dart')) return true;
 
     return false;
   }

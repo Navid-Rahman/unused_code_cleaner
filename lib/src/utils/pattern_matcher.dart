@@ -13,41 +13,44 @@ import 'package:path/path.dart' as path;
 class PatternMatcher {
   /// Default patterns that should always be excluded for safety.
   static const List<String> defaultExcludePatterns = [
-    '.git/**',
-    '.dart_tool/**',
-    'build/**',
     '.packages',
     'pubspec.lock',
-    '**/.DS_Store',
-    '**/Thumbs.db',
-    '**/*.g.dart',
-    '**/*.freezed.dart',
-    '**/*.gr.dart',
-    '**/generated/**',
-    '**/l10n/**',
+    '.DS_Store',
+    'Thumbs.db',
   ];
 
   /// Critical system directories that should never be analyzed.
   static const List<String> systemExcludePatterns = [
-    'C:/**',
-    'C:/Windows/**',
-    'C:/Program Files/**',
-    'C:/Program Files (x86)/**',
-    'C:/Users/*/AppData/**',
-    'C:/ProgramData/**',
-    '/System/**',
-    '/usr/**',
-    '/bin/**',
-    '/sbin/**',
-    '/etc/**',
+    'C:\\Windows\\**',
+    'C:\\Program Files\\**',
+    'C:\\Program Files (x86)\\**',
+    'C:\\ProgramData\\**',
   ];
 
   /// Checks if a file path matches any of the provided glob patterns.
   static bool matches(String filePath, List<String> patterns) {
+    final normalizedPath = normalizePath(filePath);
+
     for (final pattern in patterns) {
-      final glob = Glob(pattern);
-      if (glob.matches(filePath)) {
-        return true;
+      try {
+        // Handle simple patterns without glob if they contain special characters
+        if (pattern.contains('*') || pattern.contains('?')) {
+          final glob = Glob(pattern);
+          if (glob.matches(normalizedPath)) {
+            return true;
+          }
+        } else {
+          // Simple string matching for exact paths
+          if (normalizedPath == pattern ||
+              normalizedPath.endsWith('/$pattern')) {
+            return true;
+          }
+        }
+      } catch (e) {
+        // If glob parsing fails, fall back to simple string matching
+        if (normalizedPath.contains(pattern.replaceAll('*', ''))) {
+          return true;
+        }
       }
     }
     return false;
@@ -56,12 +59,53 @@ class PatternMatcher {
   /// Determines if a file should be excluded from analysis.
   /// Always includes default safety patterns.
   static bool isExcluded(String filePath, List<String> excludePatterns) {
-    final allExcludePatterns = [
-      ...defaultExcludePatterns,
-      ...systemExcludePatterns,
-      ...excludePatterns,
+    final normalizedPath = normalizePath(filePath);
+
+    // Check default patterns (simple string matching)
+    if (matches(normalizedPath, defaultExcludePatterns)) {
+      return true;
+    }
+
+    // Manual checks for common exclusions
+    if (normalizedPath.startsWith('.git/') ||
+        normalizedPath.startsWith('.dart_tool/') ||
+        normalizedPath.startsWith('build/') ||
+        normalizedPath.endsWith('.g.dart') ||
+        normalizedPath.endsWith('.freezed.dart') ||
+        normalizedPath.endsWith('.gr.dart') ||
+        normalizedPath.contains('/generated/') ||
+        normalizedPath.contains('/l10n/')) {
+      return true;
+    }
+
+    // Check system paths manually for safety
+    if (_isSystemPath(normalizedPath)) {
+      return true;
+    }
+
+    // Check user provided patterns
+    if (matches(normalizedPath, excludePatterns)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /// Manually checks for system paths to avoid glob parsing issues
+  static bool _isSystemPath(String normalizedPath) {
+    final systemPrefixes = [
+      'C:/Windows/',
+      'C:/Program Files/',
+      'C:/Program Files (x86)/',
+      'C:/ProgramData/',
+      '/System/',
+      '/usr/',
+      '/bin/',
+      '/sbin/',
+      '/etc/',
     ];
-    return matches(filePath, allExcludePatterns);
+
+    return systemPrefixes.any((prefix) => normalizedPath.startsWith(prefix));
   }
 
   /// Determines if a file should be included in analysis.
