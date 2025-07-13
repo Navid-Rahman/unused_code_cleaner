@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.1+hotfix.1 - Documentation Safety Update
+
+### Documentation Updates:
+- **ADDED**: Critical safety warnings in README.md
+- **ENHANCED**: Installation instructions with version safety notes
+- **ADDED**: Comprehensive safety features section
+- **UPDATED**: Version constraints to ensure users get safe version
+
 ## 1.0.1+hotfix - CRITICAL SAFETY UPDATE
 
 **🚨 EMERGENCY HOTFIX - ALL USERS MUST UPDATE IMMEDIATELY**

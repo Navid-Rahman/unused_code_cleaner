@@ -4,6 +4,11 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/yourusername/unused_code_cleaner/pulls)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+> **🚨 CRITICAL SAFETY UPDATE - v1.0.1+hotfix**  
+> **ALL USERS MUST UPDATE IMMEDIATELY**  
+> Previous versions (1.0.0 and earlier) contained a critical bug that could delete entire projects.  
+> **Use only version 1.0.1+hotfix or later for safe operation.**
+
 A powerful Dart CLI tool to identify and remove unused assets, functions, packages, and files from your Flutter and Dart projects, keeping your codebase clean and optimized with beautiful colored logging.
 
 🚀 **Features**
@@ -20,6 +25,8 @@ A powerful Dart CLI tool to identify and remove unused assets, functions, packag
 
 📦 **Installation**
 
+> **⚠️ IMPORTANT**: Always use version 1.0.1+hotfix or later for safety.
+
 For use as a command-line tool, activate it globally:
 
 ```bash
@@ -30,7 +37,7 @@ Or add it to your `dev_dependencies` in `pubspec.yaml` for project-specific use:
 
 ```yaml
 dev_dependencies:
-  unused_code_cleaner: ^1.0.0
+  unused_code_cleaner: ^1.0.1  # Always use 1.0.1+hotfix or later
 ```
 
 Then, fetch the dependencies:
@@ -39,7 +46,20 @@ Then, fetch the dependencies:
 dart pub get
 ```
 
-## 🔧 Usage
+## �️ Safety Features
+
+**Version 1.0.1+hotfix includes critical safety improvements:**
+
+- ✅ **Self-Protection**: Cannot analyze the unused_code_cleaner package itself
+- ✅ **System Directory Protection**: Prevents analysis of critical system directories
+- ✅ **Enhanced Confirmations**: Multi-level confirmation dialogs with detailed file lists
+- ✅ **Pattern Safety**: Uses specific path matching instead of broad substring matching
+- ✅ **Default Exclusions**: Automatically excludes generated files, git, build artifacts
+- ✅ **Cross-Platform Safety**: Robust path normalization and validation
+
+**Always backup your project before running cleanup operations!**
+
+## �🔧 Usage
 
 ### Command Line
 
