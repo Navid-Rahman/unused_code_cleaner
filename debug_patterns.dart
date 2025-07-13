@@ -6,6 +6,9 @@ void main() {
     '.git/config',
     'build/app.js',
     'test.g.dart',
+    'generated/file.dart',
+    'C:/Windows/system32/file.dll',
+    '/usr/bin/dart',
   ];
 
   for (final path in testPaths) {
@@ -15,11 +18,8 @@ void main() {
     // Test against individual pattern sets
     final defaultExcluded =
         PatternMatcher.matches(path, PatternMatcher.defaultExcludePatterns);
-    final systemExcluded =
-        PatternMatcher.matches(path, PatternMatcher.systemExcludePatterns);
 
     print('  default patterns: $defaultExcluded');
-    print('  system patterns: $systemExcluded');
     print('');
   }
 }

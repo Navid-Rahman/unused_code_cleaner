@@ -74,6 +74,7 @@ class PatternMatcher {
         normalizedPath.endsWith('.freezed.dart') ||
         normalizedPath.endsWith('.gr.dart') ||
         normalizedPath.contains('/generated/') ||
+        normalizedPath.startsWith('generated/') ||
         normalizedPath.contains('/l10n/')) {
       return true;
     }
