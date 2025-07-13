@@ -46,13 +46,13 @@ dart pub get
 Analyze your project for unused items:
 
 ```bash
-unused_code_cleaner
+dart run unused_code_cleaner
 ```
 
 Remove all unused items (interactive mode):
 
 ```bash
-unused_code_cleaner --all
+dart run unused_code_cleaner --all
 ```
 
 Remove specific types of unused items:
