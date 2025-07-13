@@ -84,6 +84,14 @@ class UnusedCodeCleaner {
 
       _displayResults(result);
 
+      // Handle dry-run mode
+      if (options.dryRun) {
+        Logger.warning(
+            '🛑 DRY RUN MODE: No files will be deleted. Review the above results.');
+        Logger.info('To actually remove files, run without --dry-run flag.');
+        return result;
+      }
+
       if (options.interactive && result.hasUnusedItems) {
         await _handleInteractiveCleanup(result, options);
       }
@@ -227,11 +235,39 @@ class UnusedCodeCleaner {
   ///
   /// Processes each category of unused items according to cleanup options,
   /// prompting user for confirmation when in interactive mode.
+  /// Enhanced with additional safety warnings for assets.
   Future<void> _handleInteractiveCleanup(
       AnalysisResult result, CleanupOptions options) async {
     Logger.section('🗑️ CLEANUP OPTIONS');
 
     if (result.unusedAssets.isNotEmpty && options.removeUnusedAssets) {
+      // ENHANCED SAFETY: Warn if too many assets are marked for deletion
+      if (result.unusedAssets.length > 10) {
+        Logger.warning(
+            '⚠️  WARNING: ${result.unusedAssets.length} assets marked for deletion!');
+        Logger.warning(
+            'This seems unusually high. Please review the list carefully.');
+        Logger.warning(
+            'Consider running with --dry-run first to verify results.');
+        Logger.warning('Assets to be deleted:');
+        for (int i = 0; i < result.unusedAssets.length && i < 20; i++) {
+          Logger.warning(
+              '  ${i + 1}. ${result.unusedAssets[i].name} (${result.unusedAssets[i].path})');
+        }
+        if (result.unusedAssets.length > 20) {
+          Logger.warning(
+              '  ... and ${result.unusedAssets.length - 20} more assets');
+        }
+
+        stdout.write(
+            '❗ Are you SURE you want to proceed? Type "YES DELETE ALL" to confirm: ');
+        final megaConfirmation = stdin.readLineSync();
+        if (megaConfirmation != 'YES DELETE ALL') {
+          Logger.info('Asset deletion cancelled for safety');
+          return;
+        }
+      }
+
       await _handleItemCleanup('assets', result.unusedAssets, options);
     }
 
@@ -273,7 +309,7 @@ class UnusedCodeCleaner {
         return;
       }
 
-      await _removeItems(items);
+      await _removeItems(items, createBackup: options.createBackup);
     } else {
       Logger.warning('Found ${items.length} unused $itemType:');
 
@@ -299,7 +335,7 @@ class UnusedCodeCleaner {
             return;
           }
         }
-        await _removeItems(items);
+        await _removeItems(items, createBackup: options.createBackup);
       } else {
         Logger.info('Skipping removal of unused $itemType');
       }
@@ -309,24 +345,52 @@ class UnusedCodeCleaner {
   /// Removes a list of unused items from the project.
   ///
   /// Dispatches to appropriate removal methods based on item type:
-  /// - Assets/Files: Physical file deletion
+  /// - Assets/Files: Physical file deletion with optional backup
   /// - Functions: AST-based code removal from source files
   /// - Packages: Removal from pubspec.yaml with dependency updates
   ///
   /// Tracks removal statistics and reports freed disk space.
-  Future<void> _removeItems(List<UnusedItem> items) async {
+  /// Enhanced with backup functionality for safety.
+  Future<void> _removeItems(List<UnusedItem> items,
+      {bool createBackup = true}) async {
     int removedCount = 0;
     int totalSize = 0;
+    Directory? backupDir;
+
+    // Create backup directory if requested
+    if (createBackup &&
+        items.any((item) =>
+            item.type == UnusedItemType.asset ||
+            item.type == UnusedItemType.file)) {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      backupDir = Directory('unused_code_cleaner_backup_$timestamp');
+      await backupDir.create();
+      Logger.info('📦 Created backup directory: ${backupDir.path}');
+    }
 
     for (final item in items) {
       try {
         switch (item.type) {
           case UnusedItemType.asset:
           case UnusedItemType.file:
-            if (await FileUtils.deleteFile(item.path)) {
-              removedCount++;
-              totalSize += item.size ?? 0;
-              Logger.debug('Removed: ${item.path}');
+            final file = File(item.path);
+            if (await file.exists()) {
+              // Create backup if requested
+              if (backupDir != null) {
+                final relativePath =
+                    path.relative(item.path, from: Directory.current.path);
+                final backupPath = path.join(backupDir.path, relativePath);
+                final backupFile = File(backupPath);
+                await backupFile.create(recursive: true);
+                await file.copy(backupFile.path);
+                Logger.debug('Backed up: ${item.path} -> ${backupFile.path}');
+              }
+
+              if (await FileUtils.deleteFile(item.path)) {
+                removedCount++;
+                totalSize += item.size ?? 0;
+                Logger.debug('Removed: ${item.path}');
+              }
             }
             break;
           case UnusedItemType.function:
@@ -347,6 +411,11 @@ class UnusedCodeCleaner {
     if (totalSize > 0) {
       Logger.success(
           'Freed up ${FileUtils.formatFileSize(totalSize)} of disk space');
+    }
+
+    if (backupDir != null && removedCount > 0) {
+      Logger.info('📦 Backup created at: ${backupDir.path}');
+      Logger.info('💡 You can restore deleted files from the backup if needed');
     }
   }
 

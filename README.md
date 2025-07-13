@@ -4,28 +4,44 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/yourusername/unused_code_cleaner/pulls)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> **🚨 CRITICAL SAFETY UPDATE - v1.0.1+hotfix**  
-> **ALL USERS MUST UPDATE IMMEDIATELY**  
-> Previous versions (1.0.0 and earlier) contained a critical bug that could delete entire projects.  
-> **Use only version 1.0.1+hotfix or later for safe operation.**
+> **🚨 CRITICAL SAFETY UPDATE - v1.0.1+hotfix.1**  
+> **MAJOR BUG FIXED - ALL USERS MUST UPDATE**  
+> Previous versions had a critical bug that deleted ALL assets instead of only unused ones.  
+> **This version includes comprehensive safety fixes and requires explicit confirmation.**
 
-A powerful Dart CLI tool to identify and remove unused assets, functions, packages, and files from your Flutter and Dart projects, keeping your codebase clean and optimized with beautiful colored logging.
+A powerful and **SAFE** Dart CLI tool to identify and remove unused assets, functions, packages, and files from your Flutter and Dart projects, with comprehensive safety features and beautiful colored logging.
+
+## 🛡️ SAFETY FIRST
+
+**ALWAYS FOLLOW THESE SAFETY STEPS:**
+
+1. **Commit your code to version control first**
+2. **Always run with `--dry-run` first**
+3. **Review the list carefully before proceeding**
+4. **Keep automatic backups enabled (default)**
+
+```bash
+# SAFE WORKFLOW - Always start here:
+dart run unused_code_cleaner --dry-run --all --verbose
+
+# Review output, then if safe:
+dart run unused_code_cleaner --all --verbose
+```
 
 🚀 **Features**
 
-- 🖼️ **Asset Analysis**: Detects unused images, fonts, JSON files, and other assets declared in `pubspec.yaml`.
-- ⚡ **Function Analysis**: Identifies unused functions and methods using Dart's AST (Abstract Syntax Tree).
-- 📦 **Package Analysis**: Finds unused dependencies listed in `pubspec.yaml`.
-- 📄 **File Analysis**: Locates unused Dart files not imported anywhere in the project.
-- 🎨 **Colored Logging**: Provides clear, emoji-enhanced, colored console output for easy debugging.
-- 🔧 **Interactive Mode**: Prompts for confirmation before removing unused items.
-- 📊 **Detailed Reports**: Generates comprehensive analysis reports with file sizes and descriptions.
-- 🛠 **Customizable**: Supports exclude patterns, include paths, and configuration via `unused_code_cleaner.yaml`.
-- ✅ **Cross-Platform**: Works seamlessly with Flutter and Dart projects on all platforms.
+- 🖼️ **Asset Analysis**: Safely detects unused images, fonts, JSON files, and other assets
+- ⚡ **Function Analysis**: Identifies unused functions and methods using Dart's AST
+- 📦 **Package Analysis**: Finds unused dependencies listed in `pubspec.yaml`
+- 📄 **File Analysis**: Locates unused Dart files not imported anywhere
+- 🛡️ **Safety Features**: Dry-run mode, automatic backups, and multiple confirmations
+- 🎨 **Colored Logging**: Clear, emoji-enhanced, colored console output
+- 🔧 **Interactive Mode**: Prompts for confirmation before removing items
+- 📊 **Detailed Reports**: Comprehensive analysis reports with file sizes
+- 🛠 **Customizable**: Supports exclude patterns and configuration files
+- ✅ **Cross-Platform**: Works on all platforms with enhanced path handling
 
 📦 **Installation**
-
-> **⚠️ IMPORTANT**: Always use version 1.0.1+hotfix or later for safety.
 
 For use as a command-line tool, activate it globally:
 
@@ -33,33 +49,52 @@ For use as a command-line tool, activate it globally:
 dart pub global activate unused_code_cleaner
 ```
 
-Or add it to your `dev_dependencies` in `pubspec.yaml` for project-specific use:
+Or add it to your `dev_dependencies` in `pubspec.yaml`:
 
 ```yaml
 dev_dependencies:
-  unused_code_cleaner: ^1.0.1  # Always use 1.0.1+hotfix or later
+  unused_code_cleaner: ^1.0.1
 ```
 
-Then, fetch the dependencies:
+## 🛡️ Safety Features
 
-```bash
-dart pub get
-```
+**Core Safety Features:**
 
-## �️ Safety Features
+- 🛡️ **Dry-Run Mode**: Preview all changes before execution with `--dry-run`
+- 📦 **Automatic Backups**: Creates timestamped backups before deletion (disable with `--no-backup`)
+- 🔒 **Protected Assets**: Never deletes assets declared in `pubspec.yaml`
+- ⚠️ **Mass Deletion Warning**: Alerts when >10 items marked for deletion
+- 🔍 **Enhanced Detection**: Comprehensive asset reference detection (constants, package: URLs, variables)
+- 📋 **Detailed Logging**: Shows exactly why each item is marked as unused
+- ✋ **Multiple Confirmations**: Requires explicit confirmation for file deletion
+- 🛠️ **Pattern Exclusions**: Supports glob patterns to protect critical files
 
-**Version 1.0.1+hotfix includes critical safety improvements:**
+**Critical Safety Protections:**
 
 - ✅ **Self-Protection**: Cannot analyze the unused_code_cleaner package itself
 - ✅ **System Directory Protection**: Prevents analysis of critical system directories
-- ✅ **Enhanced Confirmations**: Multi-level confirmation dialogs with detailed file lists
-- ✅ **Pattern Safety**: Uses specific path matching instead of broad substring matching
-- ✅ **Default Exclusions**: Automatically excludes generated files, git, build artifacts
-- ✅ **Cross-Platform Safety**: Robust path normalization and validation
+- ✅ **pubspec.yaml Assets**: Automatically protects all declared assets
+- ✅ **Generated Files**: Excludes .g.dart, .freezed.dart, build/, .dart_tool/
+- ✅ **Path Normalization**: Robust cross-platform path handling
+- ✅ **Reference Detection**: Finds assets in constants, variables, package: URLs
 
 **Always backup your project before running cleanup operations!**
 
-## �🔧 Usage
+## 🔧 Usage
+
+### Safe Workflow (RECOMMENDED)
+
+```bash
+# 1. ALWAYS start with dry-run to preview changes
+dart run unused_code_cleaner --dry-run --all --verbose
+
+# 2. Review the output carefully - check for any assets you need
+
+# 3. If the results look correct, run without dry-run
+dart run unused_code_cleaner --all --verbose
+
+# 4. Backups are automatically created in unused_code_cleaner_backup_* folder
+```
 
 ### Command Line
 

@@ -27,6 +27,12 @@ class CleanupOptions {
   /// List of specific paths to include in the analysis (empty means include all).
   final List<String> includePaths;
 
+  /// Whether to run in dry-run mode (preview changes without executing them).
+  final bool dryRun;
+
+  /// Whether to create backups before deleting files.
+  final bool createBackup;
+
   /// Creates a new [CleanupOptions] with the specified configuration.
   ///
   /// By default, all removal options are disabled and interactive mode is enabled.
@@ -39,5 +45,7 @@ class CleanupOptions {
     this.verbose = false,
     this.excludePatterns = const [],
     this.includePaths = const [],
+    this.dryRun = false,
+    this.createBackup = true,
   });
 }

@@ -19,6 +19,9 @@ void main(List<String> arguments) async {
     ..addFlag('files', help: 'Remove unused files')
     ..addFlag('all', help: 'Remove all unused items')
     ..addFlag('interactive', defaultsTo: true, help: 'Interactive mode')
+    ..addFlag('dry-run',
+        help: 'Preview changes without executing them (RECOMMENDED)')
+    ..addFlag('no-backup', help: 'Skip creating backups before deletion')
     ..addMultiOption('exclude', help: 'Exclude patterns')
     ..addOption('path', defaultsTo: '.', help: 'Project path to analyze');
 
@@ -40,6 +43,8 @@ void main(List<String> arguments) async {
       interactive: results['interactive'],
       verbose: results['verbose'],
       excludePatterns: results['exclude'],
+      dryRun: results['dry-run'],
+      createBackup: !results['no-backup'],
     );
 
     // Execute analysis and cleanup
@@ -58,10 +63,27 @@ void main(List<String> arguments) async {
 /// Shows the tool name, basic usage syntax, and detailed option descriptions
 /// generated from the argument parser configuration.
 void _printUsage(ArgParser parser) {
-  print('Unused Code Cleaner - Flutter Package');
+  print('🧹 Unused Code Cleaner - Comprehensive Dart/Flutter Cleanup Tool');
+  print('');
+  print('⚠️  IMPORTANT: Always run with --dry-run first to preview changes!');
   print('');
   print('Usage: unused_code_cleaner [options]');
   print('');
+  print('Examples:');
+  print(
+      '  unused_code_cleaner --dry-run --all --verbose     # Preview all cleanup');
+  print(
+      '  unused_code_cleaner --assets --dry-run            # Preview asset cleanup');
+  print(
+      '  unused_code_cleaner --assets --exclude "assets/icons/**"  # Protect icons');
+  print('');
   print('Options:');
   print(parser.usage);
+  print('');
+  print('🔒 Safety Features:');
+  print('  • Assets declared in pubspec.yaml are automatically protected');
+  print('  • Dry-run mode to preview changes without deletion');
+  print('  • Automatic backups created before deletion');
+  print('  • Enhanced warnings for large-scale deletions');
+  print('  • Multiple confirmation prompts for file deletion');
 }
