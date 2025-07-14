@@ -3,7 +3,6 @@ import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
-import 'package:path/path.dart' as path;
 
 import '../models/unused_item.dart';
 import '../utils/logger.dart';
@@ -16,9 +15,8 @@ class FunctionAnalyzer {
     final unusedFunctions = <UnusedItem>[];
 
     try {
-      final normalizedPath = path.normalize(path.absolute(projectPath));
-      final collection = AnalysisContextCollection(includedPaths: [normalizedPath]);
-      final context = collection.contextFor(normalizedPath);
+      final collection = AnalysisContextCollection(includedPaths: [projectPath]);
+      final context = collection.contextFor(projectPath);
       final allFunctions = <FunctionInfo>[];
       final allReferences = <String>{};
 
