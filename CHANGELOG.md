@@ -1,5 +1,68 @@
 # Changelog
 
+## 1.1.0 - MAJOR BUG FIXES & SAFETY IMPROVEMENTS
+
+**🚨 CRITICAL UPDATES - FIXES MAJOR DATA LOSS BUGS**
+
+### Critical Bug Fixes:
+
+#### **File Discovery Mismatch (CRITICAL)**
+- **FIXED**: Package was only scanning `lib/` directory for references but checking ALL project files for being "used"
+- **IMPACT**: Files outside `lib/` (test/, example/, etc.) were incorrectly marked as unused and deleted
+- **SOLUTION**: Now scans ALL Dart files in project from the beginning
+
+#### **Asset Analysis Scope Issue**
+- **FIXED**: Asset analyzer was only looking for references in limited file set
+- **IMPACT**: Assets referenced from test files or other directories were marked as unused
+- **SOLUTION**: Now scans all Dart files for asset references
+
+#### **Safety Validation Order**
+- **FIXED**: System directory validation was happening after pubspec.yaml check
+- **IMPACT**: System directories failed with wrong error message
+- **SOLUTION**: Moved system directory check to happen FIRST
+
+### Major Safety Improvements:
+
+#### **Enhanced File Protection**
+- **ADDED**: Protection for Firebase files, generated files, example/, test/, integration_test/
+- **ADDED**: Protection for platform-specific directories (android/, ios/, web/, windows/, macos/, linux/)
+- **ENHANCED**: Exclusion patterns for .vscode/, .idea/, .gradle/ directories
+
+#### **Critical Safety Validation**
+- **ADDED**: Comprehensive safety validation that warns when >75% of assets or >30% of total items marked for deletion
+- **ADDED**: Detailed analysis summary with recommendations
+- **ADDED**: Extreme caution warnings for suspicious results
+
+#### **Asset Analysis Safety**
+- **ADDED**: Specific safety validation in asset analyzer
+- **ADDED**: Warnings when unusual numbers of assets marked for deletion
+- **ADDED**: Debugging information for analysis results
+
+#### **Pattern Matcher Improvements**
+- **ENHANCED**: Cross-platform path normalization
+- **ADDED**: Better Windows path handling
+- **IMPROVED**: System path detection and exclusion
+
+### Breaking Changes:
+- None - All changes are backwards compatible and improve safety
+
+### Migration Guide:
+- **RECOMMENDED**: Always use `--dry-run` first to preview changes
+- **REQUIRED**: Update from any version before 1.1.0 immediately due to critical bugs
+- **SUGGESTED**: Review exclude patterns if you have custom exclusions
+
+### Example Usage:
+```bash
+# SAFE: Always preview first
+unused_code_cleaner --dry-run --all --verbose
+
+# SAFER: Target specific types with exclusions  
+unused_code_cleaner --assets --exclude "assets/icons/**" --dry-run
+
+# PRODUCTION: Only after reviewing dry-run results
+unused_code_cleaner --assets --interactive
+```
+
 ## 1.0.1+hotfix.1 - Documentation Safety Update
 
 ### Documentation Updates:

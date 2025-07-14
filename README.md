@@ -4,14 +4,22 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/yourusername/unused_code_cleaner/pulls)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> **🚨 CRITICAL SAFETY UPDATE - v1.0.1+hotfix.1**  
-> **MAJOR BUG FIXED - ALL USERS MUST UPDATE**  
-> Previous versions had a critical bug that deleted ALL assets instead of only unused ones.  
-> **This version includes comprehensive safety fixes and requires explicit confirmation.**
+> **🚨 MAJOR UPDATE - v1.1.0**  
+> **CRITICAL BUG FIXES - MAJOR SAFETY IMPROVEMENTS**  
+> Fixed critical file discovery bugs that could mark all project files as unused.  
+> **Enhanced with comprehensive safety validation and improved analysis accuracy.**
 
 A powerful and **SAFE** Dart CLI tool to identify and remove unused assets, functions, packages, and files from your Flutter and Dart projects, with comprehensive safety features and beautiful colored logging.
 
-## 🛡️ SAFETY FIRST
+## 🛡️ ENHANCED SAFETY FEATURES
+
+**NEW IN v1.1.0 - COMPREHENSIVE SAFETY SYSTEM:**
+
+1. **Multi-layer Safety Validation**: Warns when >75% of assets or >30% of items marked for deletion
+2. **Improved File Discovery**: Now correctly scans entire project for references
+3. **Enhanced Protection**: Better protection for critical files, tests, examples, and platform directories
+4. **Smart Analysis**: Respects pubspec.yaml asset declarations accurately
+5. **Detailed Warnings**: Comprehensive feedback when results seem suspicious
 
 **ALWAYS FOLLOW THESE SAFETY STEPS:**
 
@@ -24,7 +32,7 @@ A powerful and **SAFE** Dart CLI tool to identify and remove unused assets, func
 # SAFE WORKFLOW - Always start here:
 dart run unused_code_cleaner --dry-run --all --verbose
 
-# Review output, then if safe:
+# Review output carefully, then if safe:
 dart run unused_code_cleaner --all --verbose
 ```
 
