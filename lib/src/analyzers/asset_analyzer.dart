@@ -17,16 +17,20 @@ class AssetAnalyzer {
       Logger.info('🔍 Starting asset analysis...');
 
       final declaredAssets = await _getDeclaredAssets(projectPath);
-      Logger.debug('Found ${declaredAssets.length} declared assets in pubspec.yaml');
+      Logger.debug(
+          'Found ${declaredAssets.length} declared assets in pubspec.yaml');
       if (declaredAssets.isNotEmpty) {
         Logger.debug('Declared assets: ${declaredAssets.join(', ')}');
       }
 
       final assetFiles = await _getProjectAssets(projectPath);
-      Logger.debug('Found ${assetFiles.length} asset files in project directories');
+      Logger.debug(
+          'Found ${assetFiles.length} asset files in project directories');
 
-      final referencedAssets = await _findReferencedAssets(dartFiles, projectPath);
-      Logger.debug('Found ${referencedAssets.length} referenced assets in code');
+      final referencedAssets =
+          await _findReferencedAssets(dartFiles, projectPath);
+      Logger.debug(
+          'Found ${referencedAssets.length} referenced assets in code');
       if (options.verbose && referencedAssets.isNotEmpty) {
         Logger.debug('Referenced assets: ${referencedAssets.join(', ')}');
       }
@@ -37,13 +41,15 @@ class AssetAnalyzer {
 
         Logger.debug('Analyzing asset: $normalizedPath');
 
-        if (PatternMatcher.isExcluded(normalizedPath, options.excludePatterns)) {
+        if (PatternMatcher.isExcluded(
+            normalizedPath, options.excludePatterns)) {
           Logger.debug('✅ Skipping excluded asset: $normalizedPath');
           continue;
         }
 
         if (_isAssetDeclared(normalizedPath, declaredAssets)) {
-          Logger.debug('✅ Protecting declared asset in pubspec.yaml: $normalizedPath');
+          Logger.debug(
+              '✅ Protecting declared asset in pubspec.yaml: $normalizedPath');
           continue;
         }
 
@@ -59,14 +65,17 @@ class AssetAnalyzer {
           path: assetFile.path,
           type: UnusedItemType.asset,
           size: size,
-          description: 'Unused asset file (not referenced in code or pubspec.yaml)',
+          description:
+              'Unused asset file (not referenced in code or pubspec.yaml)',
         ));
       }
 
       // CRITICAL SAFETY CHECK: Prevent mass deletion
-      await _performSafetyValidation(assetFiles, unusedAssets, declaredAssets, referencedAssets);
+      await _performSafetyValidation(
+          assetFiles, unusedAssets, declaredAssets, referencedAssets);
 
-      Logger.info('Asset analysis complete: ${unusedAssets.length} unused assets found');
+      Logger.info(
+          'Asset analysis complete: ${unusedAssets.length} unused assets found');
       return unusedAssets;
     } catch (e) {
       Logger.error('Asset analysis failed: $e');
@@ -86,13 +95,15 @@ class AssetAnalyzer {
       if (yaml['flutter'] != null && yaml['flutter']['assets'] != null) {
         final assetList = yaml['flutter']['assets'] as List;
         for (final asset in assetList) {
-          final normalizedAsset = PatternMatcher.normalizePath(asset.toString());
+          final normalizedAsset =
+              PatternMatcher.normalizePath(asset.toString());
           assets.add(normalizedAsset);
           // Include subdirectories recursively if declared with trailing slash
           if (normalizedAsset.endsWith('/')) {
             final dir = Directory(path.join(projectPath, normalizedAsset));
             if (await dir.exists()) {
-              await for (final entity in dir.list(recursive: true, followLinks: false)) {
+              await for (final entity
+                  in dir.list(recursive: true, followLinks: false)) {
                 if (entity is File) {
                   final relPath = path.relative(entity.path, from: projectPath);
                   assets.add(PatternMatcher.normalizePath(relPath));
@@ -114,8 +125,10 @@ class AssetAnalyzer {
     for (final declared in declaredAssets) {
       final normalizedDeclared = PatternMatcher.normalizePath(declared);
       if (normalizedAssetPath == normalizedDeclared) return true;
-      if (normalizedDeclared.endsWith('/') && normalizedAssetPath.startsWith(normalizedDeclared)) return true;
-      if (!normalizedDeclared.endsWith('/') && normalizedAssetPath.startsWith('$normalizedDeclared/')) return true;
+      if (normalizedDeclared.endsWith('/') &&
+          normalizedAssetPath.startsWith(normalizedDeclared)) return true;
+      if (!normalizedDeclared.endsWith('/') &&
+          normalizedAssetPath.startsWith('$normalizedDeclared/')) return true;
     }
     return false;
   }
@@ -133,7 +146,8 @@ class AssetAnalyzer {
     return assets;
   }
 
-  Future<Set<String>> _findReferencedAssets(List<File> dartFiles, String projectPath) async {
+  Future<Set<String>> _findReferencedAssets(
+      List<File> dartFiles, String projectPath) async {
     final referenced = <String>{};
     final packageName = await _getPackageName(projectPath);
     Logger.debug('Project package name: $packageName');
@@ -174,11 +188,14 @@ class AssetAnalyzer {
     return 'unknown_package';
   }
 
-  Future<void> _findConfigFileReferences(String projectPath, Set<String> referenced) async {
+  Future<void> _findConfigFileReferences(
+      String projectPath, Set<String> referenced) async {
     try {
       final configFiles = await FileUtils.findAssetFiles(projectPath);
       for (final configFile in configFiles) {
-        if (configFile.path.endsWith('.json') || configFile.path.endsWith('.yaml') || configFile.path.endsWith('.yml')) {
+        if (configFile.path.endsWith('.json') ||
+            configFile.path.endsWith('.yaml') ||
+            configFile.path.endsWith('.yml')) {
           try {
             final content = await configFile.readAsString();
             _findAssetReferences(content, referenced, 'assets/');
@@ -195,7 +212,8 @@ class AssetAnalyzer {
     }
   }
 
-  void _findAssetReferences(String content, Set<String> referenced, String prefix) {
+  void _findAssetReferences(
+      String content, Set<String> referenced, String prefix) {
     final lines = content.split('\n');
     for (final line in lines) {
       final trimmed = line.trim();
@@ -204,7 +222,8 @@ class AssetAnalyzer {
           final parts = trimmed.split(quote);
           for (int i = 1; i < parts.length; i += 2) {
             if (parts[i].contains(prefix)) {
-              final assetPath = parts[i].split(RegExp(r'[ \t\r\n]'))[0]; // Take first segment to avoid partial matches
+              final assetPath = parts[i].split(RegExp(r'[ \t\r\n]'))[
+                  0]; // Take first segment to avoid partial matches
               referenced.add(PatternMatcher.normalizePath(assetPath));
             }
           }
@@ -219,12 +238,15 @@ class AssetAnalyzer {
       if (line.contains('AssetImage(')) {
         final startIndex = line.indexOf('AssetImage(') + 11;
         final remaining = line.substring(startIndex);
-        final quoteIndex = remaining.indexOf('"') != -1 ? remaining.indexOf('"') : remaining.indexOf("'");
+        final quoteIndex = remaining.contains('"')
+            ? remaining.indexOf('"')
+            : remaining.indexOf("'");
         if (quoteIndex != -1) {
           final quote = remaining[quoteIndex];
           final endQuote = remaining.indexOf(quote, quoteIndex + 1);
           if (endQuote != -1) {
-            final assetPath = remaining.substring(quoteIndex + 1, endQuote).trim();
+            final assetPath =
+                remaining.substring(quoteIndex + 1, endQuote).trim();
             referenced.add(PatternMatcher.normalizePath(assetPath));
           }
         }
@@ -238,12 +260,15 @@ class AssetAnalyzer {
       if (line.contains('Image.asset(')) {
         final startIndex = line.indexOf('Image.asset(') + 11;
         final remaining = line.substring(startIndex);
-        final quoteIndex = remaining.indexOf('"') != -1 ? remaining.indexOf('"') : remaining.indexOf("'");
+        final quoteIndex = remaining.contains('"')
+            ? remaining.indexOf('"')
+            : remaining.indexOf("'");
         if (quoteIndex != -1) {
           final quote = remaining[quoteIndex];
           final endQuote = remaining.indexOf(quote, quoteIndex + 1);
           if (endQuote != -1) {
-            final assetPath = remaining.substring(quoteIndex + 1, endQuote).trim();
+            final assetPath =
+                remaining.substring(quoteIndex + 1, endQuote).trim();
             referenced.add(PatternMatcher.normalizePath(assetPath));
           }
         }
@@ -251,7 +276,8 @@ class AssetAnalyzer {
     }
   }
 
-  void _findPackageReferences(String content, Set<String> referenced, String packageName) {
+  void _findPackageReferences(
+      String content, Set<String> referenced, String packageName) {
     final lines = content.split('\n');
     for (final line in lines) {
       final trimmed = line.trim();
@@ -260,7 +286,9 @@ class AssetAnalyzer {
           final parts = trimmed.split(quote);
           for (int i = 1; i < parts.length; i += 2) {
             if (parts[i].contains('package:$packageName/')) {
-              final assetPath = parts[i].replaceFirst('package:$packageName/', '').split(RegExp(r'[ \t\r\n]'))[0];
+              final assetPath = parts[i]
+                  .replaceFirst('package:$packageName/', '')
+                  .split(RegExp(r'[ \t\r\n]'))[0];
               referenced.add(PatternMatcher.normalizePath(assetPath));
             }
           }
@@ -273,7 +301,10 @@ class AssetAnalyzer {
     final lines = content.split('\n');
     for (final line in lines) {
       final trimmed = line.trim();
-      if ((trimmed.startsWith('static const String') || trimmed.startsWith('const String') || trimmed.startsWith('final String')) && trimmed.contains('=')) {
+      if ((trimmed.startsWith('static const String') ||
+              trimmed.startsWith('const String') ||
+              trimmed.startsWith('final String')) &&
+          trimmed.contains('=')) {
         final parts = trimmed.split('=');
         if (parts.length > 1) {
           final valuePart = parts[1].trim();
@@ -282,8 +313,12 @@ class AssetAnalyzer {
               final startQuote = valuePart.indexOf(quote) + 1;
               final endQuote = valuePart.indexOf(quote, startQuote);
               if (endQuote != -1) {
-                final assetPath = valuePart.substring(startQuote, endQuote).trim();
-                if (assetPath.contains('assets/') || assetPath.contains('images/') || assetPath.contains('fonts/') || assetPath.contains('data/')) {
+                final assetPath =
+                    valuePart.substring(startQuote, endQuote).trim();
+                if (assetPath.contains('assets/') ||
+                    assetPath.contains('images/') ||
+                    assetPath.contains('fonts/') ||
+                    assetPath.contains('data/')) {
                   referenced.add(PatternMatcher.normalizePath(assetPath));
                 }
               }
@@ -298,7 +333,8 @@ class AssetAnalyzer {
     final lines = content.split('\n');
     for (final line in lines) {
       final trimmed = line.trim();
-      if ((trimmed.contains('String ') || trimmed.contains('var ')) && trimmed.contains('=')) {
+      if ((trimmed.contains('String ') || trimmed.contains('var ')) &&
+          trimmed.contains('=')) {
         final parts = trimmed.split('=');
         if (parts.length > 1) {
           final valuePart = parts[1].trim();
@@ -307,8 +343,12 @@ class AssetAnalyzer {
               final startQuote = valuePart.indexOf(quote) + 1;
               final endQuote = valuePart.indexOf(quote, startQuote);
               if (endQuote != -1) {
-                final assetPath = valuePart.substring(startQuote, endQuote).trim();
-                if (assetPath.contains('assets/') || assetPath.contains('images/') || assetPath.contains('fonts/') || assetPath.contains('data/')) {
+                final assetPath =
+                    valuePart.substring(startQuote, endQuote).trim();
+                if (assetPath.contains('assets/') ||
+                    assetPath.contains('images/') ||
+                    assetPath.contains('fonts/') ||
+                    assetPath.contains('data/')) {
                   referenced.add(PatternMatcher.normalizePath(assetPath));
                 }
               }
@@ -328,7 +368,10 @@ class AssetAnalyzer {
         for (var quote in ['"', "'"]) {
           final parts = trimmed.split(quote);
           for (int i = 1; i < parts.length; i += 2) {
-            if (parts[i].contains('assets/') || parts[i].contains('images/') || parts[i].contains('fonts/') || parts[i].contains('data/')) {
+            if (parts[i].contains('assets/') ||
+                parts[i].contains('images/') ||
+                parts[i].contains('fonts/') ||
+                parts[i].contains('data/')) {
               final assetPath = parts[i].split(RegExp(r'[ \t\r\n]'))[0];
               referenced.add(PatternMatcher.normalizePath(assetPath));
             }
@@ -344,46 +387,55 @@ class AssetAnalyzer {
     for (final ref in referencedAssets) {
       final normalizedRef = PatternMatcher.normalizePath(ref);
       if (normalizedAssetPath == normalizedRef) return true;
-      if (normalizedRef.endsWith('/') && normalizedAssetPath.startsWith(normalizedRef)) return true;
-      if (!normalizedRef.endsWith('/') && normalizedAssetPath.startsWith('$normalizedRef/')) return true;
+      if (normalizedRef.endsWith('/') &&
+          normalizedAssetPath.startsWith(normalizedRef)) return true;
+      if (!normalizedRef.endsWith('/') &&
+          normalizedAssetPath.startsWith('$normalizedRef/')) return true;
     }
     return false;
   }
 
   /// CRITICAL SAFETY VALIDATION: Prevents mass deletion of assets
   Future<void> _performSafetyValidation(
-    List<File> assetFiles, 
-    List<UnusedItem> unusedAssets, 
-    List<String> declaredAssets, 
-    Set<String> referencedAssets
-  ) async {
+      List<File> assetFiles,
+      List<UnusedItem> unusedAssets,
+      List<String> declaredAssets,
+      Set<String> referencedAssets) async {
     final totalAssets = assetFiles.length;
     final unusedCount = unusedAssets.length;
-    
+
     // If more than 75% of assets are marked as unused, this is highly suspicious
     if (totalAssets > 0 && (unusedCount / totalAssets) > 0.75) {
-      Logger.warning('🚨 CRITICAL WARNING: ${unusedCount} out of ${totalAssets} assets marked as unused!');
-      Logger.warning('This is ${((unusedCount / totalAssets) * 100).round()}% of all assets.');
+      Logger.warning(
+          '🚨 CRITICAL WARNING: $unusedCount out of $totalAssets assets marked as unused!');
+      Logger.warning(
+          'This is ${((unusedCount / totalAssets) * 100).round()}% of all assets.');
       Logger.warning('');
-      Logger.warning('This seems EXTREMELY high and likely indicates an analysis error.');
+      Logger.warning(
+          'This seems EXTREMELY high and likely indicates an analysis error.');
       Logger.warning('');
       Logger.warning('📊 Analysis Summary:');
       Logger.warning('  • Total assets found: $totalAssets');
-      Logger.warning('  • Assets declared in pubspec.yaml: ${declaredAssets.length}');
-      Logger.warning('  • Asset references found in code: ${referencedAssets.length}');
+      Logger.warning(
+          '  • Assets declared in pubspec.yaml: ${declaredAssets.length}');
+      Logger.warning(
+          '  • Asset references found in code: ${referencedAssets.length}');
       Logger.warning('  • Assets marked as unused: $unusedCount');
       Logger.warning('');
       Logger.warning('🔍 Possible causes:');
-      Logger.warning('  • Assets referenced through dynamic paths or variables');
-      Logger.warning('  • Assets used in config files, JSON, or external resources');
+      Logger.warning(
+          '  • Assets referenced through dynamic paths or variables');
+      Logger.warning(
+          '  • Assets used in config files, JSON, or external resources');
       Logger.warning('  • Assets referenced from packages or plugins');
       Logger.warning('  • Build-generated asset references');
       Logger.warning('');
       Logger.warning('⚠️  STRONG RECOMMENDATION: Use --dry-run mode first!');
     } else if (unusedCount > 10) {
-      Logger.warning('⚠️  WARNING: ${unusedCount} assets marked as unused.');
+      Logger.warning('⚠️  WARNING: $unusedCount assets marked as unused.');
       Logger.warning('Please review the list carefully before deletion.');
-      Logger.warning('Consider running with --dry-run first to verify results.');
+      Logger.warning(
+          'Consider running with --dry-run first to verify results.');
     }
   }
 }

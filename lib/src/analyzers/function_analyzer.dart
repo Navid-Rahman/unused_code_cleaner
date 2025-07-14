@@ -1,6 +1,4 @@
 import 'dart:io';
-import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
-import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 
@@ -8,90 +6,122 @@ import '../models/unused_item.dart';
 import '../utils/logger.dart';
 import '../utils/pattern_matcher.dart';
 import '../models/cleanup_options.dart';
+import '../utils/ast_utils.dart';
 
 class FunctionAnalyzer {
   Future<List<UnusedItem>> analyze(
       String projectPath, List<File> dartFiles, CleanupOptions options) async {
     final unusedFunctions = <UnusedItem>[];
+    final allDeclarations =
+        <String, FunctionInfo>{}; // Map name to FunctionInfo
+    final allReferences = <String>{}; // Store referenced function names
+
+    Logger.info('🔍 Starting function analysis (AST-based)...');
+
+    AstUtils.initializeAnalysisContext(projectPath);
 
     try {
-      final collection = AnalysisContextCollection(includedPaths: [projectPath]);
-      final context = collection.contextFor(projectPath);
-      final allFunctions = <FunctionInfo>[];
-      final allReferences = <String>{};
-
       for (final file in dartFiles) {
         if (PatternMatcher.isExcluded(file.path, options.excludePatterns)) {
           continue;
         }
 
-        try {
-          final result = await context.currentSession.getResolvedUnit(file.path);
-          if (result is ResolvedUnitResult) {
-            final visitor = FunctionVisitor()..currentFilePath = file.path;
-            result.unit.accept(visitor);
-            allFunctions.addAll(visitor.functions);
-            allReferences.addAll(visitor.references);
-          } else {
-            Logger.warning('Could not resolve ${file.path}, falling back to string parsing');
-            await _parseFileFallback(file, allFunctions, allReferences);
-          }
-        } catch (e) {
-          Logger.warning('Error analyzing ${file.path}: $e, skipping');
+        final resolvedUnit = await AstUtils.getResolvedUnit(file.path);
+        if (resolvedUnit == null) {
+          Logger.debug(
+              'Skipping AST analysis for ${file.path} due to resolution errors.');
+          continue;
         }
+
+        final visitor = FunctionDeclarationVisitor(file.path);
+        resolvedUnit.unit.accept(visitor);
+
+        for (final decl in visitor.declarations) {
+          allDeclarations[decl.name] = decl;
+        }
+
+        // Collect references from this file
+        final referenceVisitor = ReferenceVisitor();
+        resolvedUnit.unit.accept(referenceVisitor);
+        allReferences.addAll(referenceVisitor.references);
       }
 
-      for (final function in allFunctions) {
-        if (!allReferences.contains(function.name) && !_isSpecialFunction(function.name)) {
+      // Identify unused functions
+      for (final entry in allDeclarations.entries) {
+        final functionName = entry.key;
+        final functionInfo = entry.value;
+
+        // A function is considered used if its name is referenced anywhere
+        // or if it's a main function, a public API, or a framework method.
+        if (!allReferences.contains(functionName) &&
+            !_isMainFunction(functionInfo) &&
+            !_isPublicApi(functionInfo) &&
+            !_isFrameworkMethod(functionInfo)) {
           unusedFunctions.add(UnusedItem(
-            name: function.name,
-            path: function.filePath,
+            name: functionInfo.name,
+            path: functionInfo.filePath,
             type: UnusedItemType.function,
-            lineNumber: function.lineNumber,
-            description: 'Unused ${function.type} function',
+            lineNumber: functionInfo.lineNumber,
+            description: 'Unused ${functionInfo.type} function/method',
           ));
         }
       }
 
-      Logger.info('Found ${unusedFunctions.length} unused functions');
+      Logger.info(
+          'Function analysis complete: ${unusedFunctions.length} unused functions found');
       return unusedFunctions;
     } catch (e) {
       Logger.error('Function analysis failed: $e');
       return [];
+    } finally {
+      AstUtils.disposeAnalysisContext();
     }
   }
 
-  Future<void> _parseFileFallback(File file, List<FunctionInfo> functions, Set<String> references) async {
-    try {
-      final content = await file.readAsString();
-      final lines = content.split('\n');
-      for (int i = 0; i < lines.length; i++) {
-        final line = lines[i].trim();
-        if (line.contains('(') && (line.contains('void ') || line.contains('Future<') || line.contains('String ') || line.contains('int '))) {
-          final nameStart = line.indexOf(RegExp(r'[a-zA-Z]')) + line.indexOf('(');
-          if (nameStart != -1) {
-            final name = line.substring(0, nameStart).split(' ').last;
-            functions.add(FunctionInfo(name: name, filePath: file.path, lineNumber: i + 1, type: 'function'));
-          }
-        }
-        if (line.contains('.')) {
-          final parts = line.split('.');
-          for (final part in parts) {
-            if (part.contains('(')) references.add(part.split('(')[0]);
-          }
-        }
-      }
-    } catch (e) {
-      Logger.debug('Fallback parsing failed for ${file.path}: $e');
-    }
+  bool _isMainFunction(FunctionInfo functionInfo) {
+    return functionInfo.name == 'main' && functionInfo.type == 'function';
   }
 
-  bool _isSpecialFunction(String name) {
-    final specialFunctions = {
-      'main', 'build', 'createState', 'dispose', 'initState', 'didChangeDependencies',
-      'didUpdateWidget', 'deactivate', 'toString', 'hashCode', 'operator', 'useEffect', 'useState'
+  bool _isPublicApi(FunctionInfo functionInfo) {
+    // Consider functions/methods that are not private (don't start with '_')
+    // Be conservative - don't mark public methods as unused
+    return !functionInfo.name.startsWith('_');
+  }
+
+  bool _isFrameworkMethod(FunctionInfo functionInfo) {
+    final frameworkMethods = {
+      'build',
+      'createState',
+      'initState',
+      'dispose',
+      'didChangeDependencies',
+      'didUpdateWidget',
+      'deactivate',
+      'debugFillProperties',
+      'reassemble',
+      'noSuchMethod',
+      'call',
+      'copyWith',
+      'fromJson',
+      'toJson',
+      'fromMap',
+      'toMap',
+      'when',
+      'map',
+      'maybeMap',
+      'maybeWhen',
+      'toString',
+      'hashCode',
+      'operator=='
     };
-    return specialFunctions.any((special) => name.contains(special));
+    return frameworkMethods.contains(functionInfo.name) ||
+        functionInfo.name
+            .startsWith('on') || // Common for callbacks like onPressed
+        functionInfo.name
+            .startsWith('_') || // Private methods can be used internally
+        functionInfo.name
+            .endsWith('Provider') || // Common for Riverpod providers
+        functionInfo.name.contains('Generated'); // Generated code
   }
 }
 
@@ -109,17 +139,18 @@ class FunctionInfo {
   });
 }
 
-class FunctionVisitor extends RecursiveAstVisitor<void> {
-  final functions = <FunctionInfo>[];
-  final references = <String>{};
-  late String currentFilePath;
+class FunctionDeclarationVisitor extends RecursiveAstVisitor<void> {
+  final List<FunctionInfo> declarations = [];
+  final String currentFilePath;
+
+  FunctionDeclarationVisitor(this.currentFilePath);
 
   @override
   void visitFunctionDeclaration(FunctionDeclaration node) {
-    functions.add(FunctionInfo(
+    declarations.add(FunctionInfo(
       name: node.name.lexeme,
       filePath: currentFilePath,
-      lineNumber: node.offset,
+      lineNumber: node.name.offset,
       type: 'function',
     ));
     super.visitFunctionDeclaration(node);
@@ -127,15 +158,59 @@ class FunctionVisitor extends RecursiveAstVisitor<void> {
 
   @override
   void visitMethodDeclaration(MethodDeclaration node) {
-    if (!node.isStatic) {
-      functions.add(FunctionInfo(
+    declarations.add(FunctionInfo(
+      name: node.name.lexeme,
+      filePath: currentFilePath,
+      lineNumber: node.name.offset,
+      type: 'method',
+    ));
+    super.visitMethodDeclaration(node);
+  }
+
+  @override
+  void visitConstructorDeclaration(ConstructorDeclaration node) {
+    final className = (node.parent as ClassDeclaration).name.lexeme;
+    final constructorName = node.name?.lexeme;
+    final name =
+        constructorName != null ? '$className.$constructorName' : className;
+
+    declarations.add(FunctionInfo(
+      name: name,
+      filePath: currentFilePath,
+      lineNumber: node.offset,
+      type: 'constructor',
+    ));
+    super.visitConstructorDeclaration(node);
+  }
+
+  @override
+  void visitVariableDeclaration(VariableDeclaration node) {
+    // Handle function variables (e.g., final myFunc = () => {...})
+    if (node.initializer is FunctionExpression) {
+      declarations.add(FunctionInfo(
         name: node.name.lexeme,
         filePath: currentFilePath,
-        lineNumber: node.offset,
-        type: 'method',
+        lineNumber: node.name.offset,
+        type: 'function variable',
       ));
     }
-    super.visitMethodDeclaration(node);
+    super.visitVariableDeclaration(node);
+  }
+}
+
+class ReferenceVisitor extends RecursiveAstVisitor<void> {
+  final Set<String> references = {};
+
+  @override
+  void visitSimpleIdentifier(SimpleIdentifier node) {
+    // Only add if it's not part of a declaration
+    if (node.parent is! FunctionDeclaration &&
+        node.parent is! MethodDeclaration &&
+        node.parent is! ConstructorDeclaration &&
+        node.parent is! VariableDeclaration) {
+      references.add(node.name);
+    }
+    super.visitSimpleIdentifier(node);
   }
 
   @override
@@ -145,18 +220,41 @@ class FunctionVisitor extends RecursiveAstVisitor<void> {
   }
 
   @override
-  void visitSimpleIdentifier(SimpleIdentifier node) {
-    if (node.parent is MethodInvocation || node.parent is FunctionExpressionInvocation) {
-      references.add(node.name);
-    }
-    super.visitSimpleIdentifier(node);
-  }
-
-  @override
   void visitFunctionExpressionInvocation(FunctionExpressionInvocation node) {
     if (node.function is SimpleIdentifier) {
       references.add((node.function as SimpleIdentifier).name);
     }
     super.visitFunctionExpressionInvocation(node);
+  }
+
+  @override
+  void visitPrefixedIdentifier(PrefixedIdentifier node) {
+    references.add(node.identifier.name);
+    super.visitPrefixedIdentifier(node);
+  }
+
+  @override
+  void visitPropertyAccess(PropertyAccess node) {
+    references.add(node.propertyName.name);
+    super.visitPropertyAccess(node);
+  }
+
+  @override
+  void visitInstanceCreationExpression(InstanceCreationExpression node) {
+    final typeName = node.constructorName.type.name2.lexeme;
+    references.add(typeName);
+
+    // Add constructor name if specified
+    final constructorName = node.constructorName.name?.name;
+    if (constructorName != null) {
+      references.add('$typeName.$constructorName');
+    }
+    super.visitInstanceCreationExpression(node);
+  }
+
+  @override
+  void visitNamedExpression(NamedExpression node) {
+    references.add(node.name.label.name);
+    super.visitNamedExpression(node);
   }
 }

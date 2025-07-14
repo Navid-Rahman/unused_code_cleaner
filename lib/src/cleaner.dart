@@ -4,7 +4,7 @@ import 'package:path/path.dart' as path;
 import 'models/analysis_result.dart';
 import 'models/unused_item.dart';
 import 'models/cleanup_options.dart';
-import 'utils/logger.dart';
+import 'utils/logger.dart' as logger;
 import 'utils/file_utils.dart';
 import 'analyzers/asset_analyzer.dart';
 import 'analyzers/function_analyzer.dart';
@@ -49,8 +49,8 @@ class UnusedCodeCleaner {
       String projectPath, CleanupOptions options) async {
     final stopwatch = Stopwatch()..start();
 
-    Logger.setVerbose(options.verbose);
-    Logger.title('🔍 UNUSED CODE CLEANER - ANALYSIS STARTED');
+    logger.Logger.setVerbose(options.verbose);
+    logger.Logger.title('🔍 UNUSED CODE CLEANER - ANALYSIS STARTED');
 
     try {
       // Validate project structure
@@ -61,7 +61,7 @@ class UnusedCodeCleaner {
       final dartFiles = await FileUtils.findDartFiles(projectPath);
       final totalFiles = dartFiles.length;
 
-      Logger.info('Found $totalFiles Dart files to analyze');
+      logger.Logger.info('Found $totalFiles Dart files to analyze');
 
       // Perform analysis
       final unusedAssets =
@@ -90,9 +90,10 @@ class UnusedCodeCleaner {
 
       // Handle dry-run mode
       if (options.dryRun) {
-        Logger.warning(
+        logger.Logger.warning(
             '🛑 DRY RUN MODE: No files will be deleted. Review the above results.');
-        Logger.info('To actually remove files, run without --dry-run flag.');
+        logger.Logger.info(
+            'To actually remove files, run without --dry-run flag.');
         return result;
       }
 
@@ -102,7 +103,7 @@ class UnusedCodeCleaner {
 
       return result;
     } catch (e) {
-      Logger.error('Analysis failed: $e');
+      logger.Logger.error('Analysis failed: $e');
       rethrow;
     }
   }
@@ -155,34 +156,34 @@ class UnusedCodeCleaner {
           'lib directory not found in $projectPath');
     }
 
-    Logger.success('Project structure validated');
+    logger.Logger.success('Project structure validated');
   }
 
   /// Analyzes asset files to find unused resources declared in pubspec.yaml.
   Future<List<UnusedItem>> _analyzeAssets(
       String projectPath, List<File> dartFiles, CleanupOptions options) async {
-    Logger.section('📦 ANALYZING ASSETS');
+    logger.Logger.section('📦 ANALYZING ASSETS');
     return await _assetAnalyzer.analyze(projectPath, dartFiles, options);
   }
 
   /// Analyzes function and method declarations to find unused code.
   Future<List<UnusedItem>> _analyzeFunctions(
       String projectPath, List<File> dartFiles, CleanupOptions options) async {
-    Logger.section('⚡ ANALYZING FUNCTIONS');
+    logger.Logger.section('⚡ ANALYZING FUNCTIONS');
     return await _functionAnalyzer.analyze(projectPath, dartFiles, options);
   }
 
   /// Analyzes package dependencies to find unused imports in pubspec.yaml.
   Future<List<UnusedItem>> _analyzePackages(
       String projectPath, List<File> dartFiles, CleanupOptions options) async {
-    Logger.section('📦 ANALYZING PACKAGES');
+    logger.Logger.section('📦 ANALYZING PACKAGES');
     return await _packageAnalyzer.analyze(projectPath, dartFiles, options);
   }
 
   /// Analyzes Dart files to find unreferenced source files.
   Future<List<UnusedItem>> _analyzeFiles(
       String projectPath, List<File> dartFiles, CleanupOptions options) async {
-    Logger.section('📄 ANALYZING FILES');
+    logger.Logger.section('📄 ANALYZING FILES');
     return await _fileAnalyzer.analyze(projectPath, dartFiles, options);
   }
 
@@ -191,15 +192,15 @@ class UnusedCodeCleaner {
   /// Shows timing information, file counts, and detailed breakdowns
   /// of each type of unused item found during analysis.
   void _displayResults(AnalysisResult result) {
-    Logger.title('📊 ANALYSIS RESULTS');
+    logger.Logger.title('📊 ANALYSIS RESULTS');
 
-    Logger.info(
+    logger.Logger.info(
         'Analysis completed in ${result.analysisTime.inMilliseconds}ms');
-    Logger.info('Total files scanned: ${result.totalScannedFiles}');
-    Logger.info('Total unused items found: ${result.totalUnusedItems}');
+    logger.Logger.info('Total files scanned: ${result.totalScannedFiles}');
+    logger.Logger.info('Total unused items found: ${result.totalUnusedItems}');
 
     if (!result.hasUnusedItems) {
-      Logger.success('🎉 No unused items found! Your project is clean.');
+      logger.Logger.success('🎉 No unused items found! Your project is clean.');
       return;
     }
 
@@ -216,7 +217,7 @@ class UnusedCodeCleaner {
   void _displayUnusedItems(String title, List<UnusedItem> items) {
     if (items.isEmpty) return;
 
-    Logger.section('$title (${items.length} items)');
+    logger.Logger.section('$title (${items.length} items)');
 
     final tableData = [
       ['Name', 'Path', 'Size', 'Description']
@@ -233,7 +234,7 @@ class UnusedCodeCleaner {
       ]);
     }
 
-    Logger.table(tableData);
+    logger.Logger.table(tableData);
   }
 
   /// Orchestrates interactive cleanup process for all unused item categories.
@@ -243,24 +244,24 @@ class UnusedCodeCleaner {
   /// Enhanced with additional safety warnings for assets.
   Future<void> _handleInteractiveCleanup(
       AnalysisResult result, CleanupOptions options) async {
-    Logger.section('🗑️ CLEANUP OPTIONS');
+    logger.Logger.section('🗑️ CLEANUP OPTIONS');
 
     if (result.unusedAssets.isNotEmpty && options.removeUnusedAssets) {
       // ENHANCED SAFETY: Warn if too many assets are marked for deletion
       if (result.unusedAssets.length > 10) {
-        Logger.warning(
+        logger.Logger.warning(
             '⚠️  WARNING: ${result.unusedAssets.length} assets marked for deletion!');
-        Logger.warning(
+        logger.Logger.warning(
             'This seems unusually high. Please review the list carefully.');
-        Logger.warning(
+        logger.Logger.warning(
             'Consider running with --dry-run first to verify results.');
-        Logger.warning('Assets to be deleted:');
+        logger.Logger.warning('Assets to be deleted:');
         for (int i = 0; i < result.unusedAssets.length && i < 20; i++) {
-          Logger.warning(
+          logger.Logger.warning(
               '  ${i + 1}. ${result.unusedAssets[i].name} (${result.unusedAssets[i].path})');
         }
         if (result.unusedAssets.length > 20) {
-          Logger.warning(
+          logger.Logger.warning(
               '  ... and ${result.unusedAssets.length - 20} more assets');
         }
 
@@ -268,7 +269,7 @@ class UnusedCodeCleaner {
             '❗ Are you SURE you want to proceed? Type "YES DELETE ALL" to confirm: ');
         final megaConfirmation = stdin.readLineSync();
         if (megaConfirmation != 'YES DELETE ALL') {
-          Logger.info('Asset deletion cancelled for safety');
+          logger.Logger.info('Asset deletion cancelled for safety');
           return;
         }
       }
@@ -297,12 +298,12 @@ class UnusedCodeCleaner {
   Future<void> _handleItemCleanup(
       String itemType, List<UnusedItem> items, CleanupOptions options) async {
     if (!options.interactive) {
-      Logger.info('Auto-removing unused $itemType...');
+      logger.Logger.info('Auto-removing unused $itemType...');
 
       // CRITICAL SAFETY: Show detailed list before automatic removal
-      Logger.warning('⚠️  AUTOMATIC REMOVAL - Review these items:');
+      logger.Logger.warning('⚠️  AUTOMATIC REMOVAL - Review these items:');
       for (final item in items) {
-        Logger.warning('  - ${item.name} (${item.path})');
+        logger.Logger.warning('  - ${item.name} (${item.path})');
       }
 
       // Final safety check
@@ -310,20 +311,21 @@ class UnusedCodeCleaner {
           '❗ PROCEED WITH AUTOMATIC DELETION? Type "DELETE" to confirm: ');
       final confirmation = stdin.readLineSync();
       if (confirmation != 'DELETE') {
-        Logger.info('Automatic removal cancelled for safety');
+        logger.Logger.info('Automatic removal cancelled for safety');
         return;
       }
 
       await _removeItems(items, createBackup: options.createBackup);
     } else {
-      Logger.warning('Found ${items.length} unused $itemType:');
+      logger.Logger.warning('Found ${items.length} unused $itemType:');
 
       // Show detailed list of items to be removed
       for (int i = 0; i < items.length && i < 10; i++) {
-        Logger.warning('  ${i + 1}. ${items[i].name} (${items[i].path})');
+        logger.Logger.warning(
+            '  ${i + 1}. ${items[i].name} (${items[i].path})');
       }
       if (items.length > 10) {
-        Logger.warning('  ... and ${items.length - 10} more items');
+        logger.Logger.warning('  ... and ${items.length - 10} more items');
       }
 
       stdout.write('❗ Do you want to remove these $itemType? (y/N): ');
@@ -336,13 +338,13 @@ class UnusedCodeCleaner {
               '⚠️  This will permanently DELETE files. Type "DELETE" to confirm: ');
           final confirmation = stdin.readLineSync();
           if (confirmation != 'DELETE') {
-            Logger.info('File deletion cancelled for safety');
+            logger.Logger.info('File deletion cancelled for safety');
             return;
           }
         }
         await _removeItems(items, createBackup: options.createBackup);
       } else {
-        Logger.info('Skipping removal of unused $itemType');
+        logger.Logger.info('Skipping removal of unused $itemType');
       }
     }
   }
@@ -370,7 +372,7 @@ class UnusedCodeCleaner {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       backupDir = Directory('unused_code_cleaner_backup_$timestamp');
       await backupDir.create();
-      Logger.info('📦 Created backup directory: ${backupDir.path}');
+      logger.Logger.info('📦 Created backup directory: ${backupDir.path}');
     }
 
     for (final item in items) {
@@ -388,13 +390,14 @@ class UnusedCodeCleaner {
                 final backupFile = File(backupPath);
                 await backupFile.create(recursive: true);
                 await file.copy(backupFile.path);
-                Logger.debug('Backed up: ${item.path} -> ${backupFile.path}');
+                logger.Logger.debug(
+                    'Backed up: ${item.path} -> ${backupFile.path}');
               }
 
               if (await FileUtils.deleteFile(item.path)) {
                 removedCount++;
                 totalSize += item.size ?? 0;
-                Logger.debug('Removed: ${item.path}');
+                logger.Logger.debug('Removed: ${item.path}');
               }
             }
             break;
@@ -408,19 +411,20 @@ class UnusedCodeCleaner {
             break;
         }
       } catch (e) {
-        Logger.error('Failed to remove ${item.name}: $e');
+        logger.Logger.error('Failed to remove ${item.name}: $e');
       }
     }
 
-    Logger.success('Removed $removedCount items');
+    logger.Logger.success('Removed $removedCount items');
     if (totalSize > 0) {
-      Logger.success(
+      logger.Logger.success(
           'Freed up ${FileUtils.formatFileSize(totalSize)} of disk space');
     }
 
     if (backupDir != null && removedCount > 0) {
-      Logger.info('📦 Backup created at: ${backupDir.path}');
-      Logger.info('💡 You can restore deleted files from the backup if needed');
+      logger.Logger.info('📦 Backup created at: ${backupDir.path}');
+      logger.Logger.info(
+          '💡 You can restore deleted files from the backup if needed');
     }
   }
 
@@ -437,7 +441,7 @@ class UnusedCodeCleaner {
     try {
       final file = File(item.path);
       if (!await file.exists()) {
-        Logger.warning('File not found: ${item.path}');
+        logger.Logger.warning('File not found: ${item.path}');
         return;
       }
 
@@ -517,13 +521,14 @@ class UnusedCodeCleaner {
 
         // Write the modified content back
         await file.writeAsString(newLines.join('\n'));
-        Logger.success('Removed function ${item.name} from ${item.path}');
+        logger.Logger.success(
+            'Removed function ${item.name} from ${item.path}');
       } else {
-        Logger.warning(
+        logger.Logger.warning(
             'Could not locate function ${item.name} in ${item.path}');
       }
     } catch (e) {
-      Logger.error('Failed to remove function ${item.name}: $e');
+      logger.Logger.error('Failed to remove function ${item.name}: $e');
     }
   }
 
@@ -544,7 +549,7 @@ class UnusedCodeCleaner {
       final pubspecFile = File(pubspecPath);
 
       if (!await pubspecFile.exists()) {
-        Logger.warning('pubspec.yaml not found at: $pubspecPath');
+        logger.Logger.warning('pubspec.yaml not found at: $pubspecPath');
         return;
       }
 
@@ -580,7 +585,7 @@ class UnusedCodeCleaner {
           if (trimmedLine.startsWith('${item.name}:')) {
             shouldRemoveLine = true;
             packageRemoved = true;
-            Logger.debug('Found package to remove: $trimmedLine');
+            logger.Logger.debug('Found package to remove: $trimmedLine');
 
             // Also check if the next lines are part of this package definition (multi-line)
             int j = i + 1;
@@ -608,10 +613,10 @@ class UnusedCodeCleaner {
 
       if (packageRemoved) {
         await pubspecFile.writeAsString(newLines.join('\n'));
-        Logger.success('Removed package ${item.name} from pubspec.yaml');
+        logger.Logger.success('Removed package ${item.name} from pubspec.yaml');
 
         // Run pub get to update dependencies
-        Logger.info('Running pub get to update dependencies...');
+        logger.Logger.info('Running pub get to update dependencies...');
         final result = await Process.run(
           'dart',
           ['pub', 'get'],
@@ -619,15 +624,15 @@ class UnusedCodeCleaner {
         );
 
         if (result.exitCode == 0) {
-          Logger.success('Dependencies updated successfully');
+          logger.Logger.success('Dependencies updated successfully');
         } else {
-          Logger.warning('pub get failed: ${result.stderr}');
+          logger.Logger.warning('pub get failed: ${result.stderr}');
         }
       } else {
-        Logger.warning('Package ${item.name} not found in pubspec.yaml');
+        logger.Logger.warning('Package ${item.name} not found in pubspec.yaml');
       }
     } catch (e) {
-      Logger.error('Failed to remove package ${item.name}: $e');
+      logger.Logger.error('Failed to remove package ${item.name}: $e');
     }
   }
 
@@ -635,53 +640,62 @@ class UnusedCodeCleaner {
   void _validateResultsSafety(AnalysisResult result) {
     final totalUnused = result.totalUnusedItems;
     final totalScanned = result.totalScannedFiles;
-    
+
     // Check for suspiciously high deletion rates
     bool suspicious = false;
     final warnings = <String>[];
-    
+
     if (result.unusedAssets.length > 20) {
       suspicious = true;
       warnings.add('${result.unusedAssets.length} assets marked for deletion');
     }
-    
+
     if (result.unusedFiles.length > 10) {
       suspicious = true;
-      warnings.add('${result.unusedFiles.length} Dart files marked for deletion');
+      warnings
+          .add('${result.unusedFiles.length} Dart files marked for deletion');
     }
-    
+
     if (result.unusedPackages.length > 5) {
       suspicious = true;
-      warnings.add('${result.unusedPackages.length} packages marked for deletion');
+      warnings
+          .add('${result.unusedPackages.length} packages marked for deletion');
     }
-    
+
     if (totalScanned > 0 && (totalUnused / totalScanned) > 0.3) {
       suspicious = true;
-      warnings.add('${((totalUnused / totalScanned) * 100).round()}% of all scanned items marked for deletion');
+      warnings.add(
+          '${((totalUnused / totalScanned) * 100).round()}% of all scanned items marked for deletion');
     }
-    
+
     if (suspicious) {
-      Logger.warning('🚨 CRITICAL SAFETY WARNING:');
-      Logger.warning('');
+      logger.Logger.warning('🚨 CRITICAL SAFETY WARNING:');
+      logger.Logger.warning('');
       for (final warning in warnings) {
-        Logger.warning('  • $warning');
+        logger.Logger.warning('  • $warning');
       }
-      Logger.warning('');
-      Logger.warning('This seems EXTREMELY high and may indicate an analysis error.');
-      Logger.warning('');
-      Logger.warning('⚠️  STRONG RECOMMENDATIONS:');
-      Logger.warning('  1. Use --dry-run mode to preview changes');
-      Logger.warning('  2. Review the analysis results carefully');
-      Logger.warning('  3. Check if assets/files are referenced dynamically');
-      Logger.warning('  4. Verify the project structure is correct');
-      Logger.warning('  5. Consider using --exclude patterns for important files');
-      Logger.warning('');
-      
+      logger.Logger.warning('');
+      logger.Logger.warning(
+          'This seems EXTREMELY high and may indicate an analysis error.');
+      logger.Logger.warning('');
+      logger.Logger.warning('⚠️  STRONG RECOMMENDATIONS:');
+      logger.Logger.warning('  1. Use --dry-run mode to preview changes');
+      logger.Logger.warning('  2. Review the analysis results carefully');
+      logger.Logger.warning(
+          '  3. Check if assets/files are referenced dynamically');
+      logger.Logger.warning('  4. Verify the project structure is correct');
+      logger.Logger.warning(
+          '  5. Consider using --exclude patterns for important files');
+      logger.Logger.warning('');
+
       // EXTREME SAFETY: If results are highly suspicious, recommend immediate dry-run
       if (result.unusedAssets.length > 50 || result.unusedFiles.length > 20) {
-        Logger.error('🛑 EXTREME CAUTION: Unusually high number of items marked for deletion!');
-        Logger.error('🛑 This strongly suggests an analysis bug or misconfiguration.');
-        Logger.error('🛑 PLEASE run with --dry-run first and carefully review results!');
+        logger.Logger.error(
+            '🛑 EXTREME CAUTION: Unusually high number of items marked for deletion!');
+        logger.Logger.error(
+            '🛑 This strongly suggests an analysis bug or misconfiguration.');
+        logger.Logger.error(
+            '🛑 PLEASE run with --dry-run first and carefully review results!');
       }
     }
   }
