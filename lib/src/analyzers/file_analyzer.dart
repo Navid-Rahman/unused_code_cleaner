@@ -7,52 +7,47 @@ import '../utils/file_utils.dart';
 import '../utils/pattern_matcher.dart';
 import '../models/cleanup_options.dart';
 
-/// Analyzes Dart files to identify unused files within a project.
-///
-/// This analyzer examines import statements to determine which files are
-/// actually being used and marks files without any imports as potentially unused.
 class FileAnalyzer {
-  /// Analyzes the project to find unused Dart files.
-  ///
-  /// [projectPath] - Root path of the project
-  /// [dartFiles] - List of Dart files to analyze
-  /// [options] - Cleanup options including exclude patterns
-  /// Returns a list of unused items representing unused files.
   Future<List<UnusedItem>> analyze(
       String projectPath, List<File> dartFiles, CleanupOptions options) async {
     final unusedFiles = <UnusedItem>[];
 
     try {
-      // Get all Dart files in the project
+      // CRITICAL FIX: Only analyze files in lib/ for imports, but check all files
+      // Get all dart files in the project for completeness check
       final allDartFiles = await FileUtils.findDartFiles(projectPath);
       Logger.debug('Found ${allDartFiles.length} total Dart files');
 
-      // Find imported files
-      final importedFiles =
-          await _findImportedFiles(dartFiles, projectPath, options);
+      // Find imported files from ALL dart files, not just lib/
+      final importedFiles = await _findImportedFiles(allDartFiles, projectPath, options);
       Logger.debug('Found ${importedFiles.length} imported files');
 
-      // Find unused files
-      for (final file in allDartFiles) {
+      // Check each file in lib/ directory specifically (main source files)
+      final libDartFiles = allDartFiles.where((file) => 
+        file.path.contains('${path.separator}lib${path.separator}') ||
+        file.path.endsWith('${path.separator}lib')).toList();
+
+      for (final file in libDartFiles) {
         final relativePath = path.relative(file.path, from: projectPath);
 
-        // Skip excluded files
         if (PatternMatcher.isExcluded(relativePath, options.excludePatterns)) {
+          Logger.debug('✅ Skipping excluded file: $relativePath');
           continue;
         }
 
-        if (!_isFileImported(file.path, importedFiles) &&
-            !_isSpecialFile(relativePath)) {
-          final size = await FileUtils.getFileSize(file.path);
-
-          unusedFiles.add(UnusedItem(
-            name: path.basename(file.path),
-            path: file.path,
-            type: UnusedItemType.file,
-            size: size,
-            description: 'Unused Dart file',
-          ));
+        if (_isFileImported(file.path, importedFiles) || _isSpecialFile(relativePath)) {
+          Logger.debug('✅ Protecting file: $relativePath');
+          continue;
         }
+
+        final size = await FileUtils.getFileSize(file.path);
+        unusedFiles.add(UnusedItem(
+          name: path.basename(file.path),
+          path: file.path,
+          type: UnusedItemType.file,
+          size: size,
+          description: 'Unused Dart file',
+        ));
       }
 
       Logger.info('Found ${unusedFiles.length} unused files');
@@ -63,18 +58,11 @@ class FileAnalyzer {
     }
   }
 
-  /// Finds all files that are imported by other Dart files in the project.
-  ///
-  /// [dartFiles] - List of Dart files to scan for imports
-  /// [projectPath] - Root path of the project
-  /// [options] - Cleanup options including exclude patterns
-  /// Returns a set of file paths that are imported somewhere.
   Future<Set<String>> _findImportedFiles(
       List<File> dartFiles, String projectPath, CleanupOptions options) async {
     final imported = <String>{};
 
     for (final file in dartFiles) {
-      // Skip excluded files
       if (PatternMatcher.isExcluded(file.path, options.excludePatterns)) {
         continue;
       }
@@ -85,24 +73,31 @@ class FileAnalyzer {
 
         for (final line in lines) {
           final trimmed = line.trim();
-          // Look for local imports (not package imports)
-          if (trimmed.startsWith('import \'') &&
-              !trimmed.contains('package:')) {
-            // Simple string parsing instead of regex to avoid syntax issues
-            final startQuote = trimmed.indexOf('\'', 7); // Skip "import "
+          if (trimmed.startsWith('import \'') && !trimmed.contains('package:')) {
+            final startQuote = trimmed.indexOf('\'', 7);
             final endQuote = trimmed.indexOf('\'', startQuote + 1);
             if (startQuote != -1 && endQuote != -1) {
               String importPath = trimmed.substring(startQuote + 1, endQuote);
-              // Resolve relative paths
-              if (importPath.startsWith('../') ||
-                  importPath.startsWith('./') ||
-                  !importPath.contains('/')) {
+              if (importPath.startsWith('../') || importPath.startsWith('./') || !importPath.contains('/')) {
                 final dir = path.dirname(file.path);
                 importPath = path.normalize(path.join(dir, importPath));
               } else {
                 importPath = path.join(projectPath, 'lib', importPath);
               }
-              imported.add(importPath);
+              if (!importPath.endsWith('.dart')) importPath += '.dart';
+              imported.add(PatternMatcher.normalizePath(importPath));
+            }
+          }
+          // Enhanced: Handle part files (e.g., part 'file.dart')
+          if (trimmed.startsWith('part ')) {
+            final startQuote = trimmed.indexOf('\'');
+            final endQuote = trimmed.indexOf('\'', startQuote + 1);
+            if (startQuote != -1 && endQuote != -1) {
+              String partPath = trimmed.substring(startQuote + 1, endQuote);
+              if (!partPath.endsWith('.dart')) partPath += '.dart';
+              final dir = path.dirname(file.path);
+              final fullPath = path.normalize(path.join(dir, partPath));
+              imported.add(PatternMatcher.normalizePath(fullPath));
             }
           }
         }
@@ -114,48 +109,46 @@ class FileAnalyzer {
     return imported;
   }
 
-  /// Checks if a file is imported by any other file in the project.
-  ///
-  /// [filePath] - Path to the file to check
-  /// [importedFiles] - Set of all imported file paths
-  /// Returns true if the file is imported, false otherwise.
   bool _isFileImported(String filePath, Set<String> importedFiles) {
-    // Check direct import
-    if (importedFiles.contains(filePath)) return true;
-
-    // Check for files that might be imported without extension
-    final withoutExtension = filePath.replaceAll('.dart', '');
-    return importedFiles.any(
-        (imported) => imported.replaceAll('.dart', '') == withoutExtension);
+    final normalizedPath = PatternMatcher.normalizePath(filePath);
+    if (importedFiles.contains(normalizedPath)) return true;
+    final withoutExtension = normalizedPath.replaceAll('.dart', '');
+    return importedFiles.any((imported) => imported.replaceAll('.dart', '') == withoutExtension);
   }
 
-  /// Determines if a file is a special file that should not be marked as unused.
-  ///
-  /// Special files include main.dart, test files, generated files, etc.
-  ///
-  /// [relativePath] - Relative path of the file from project root
-  /// Returns true if the file is special and should be kept, false otherwise.
   bool _isSpecialFile(String relativePath) {
-    // Normalize path separators for cross-platform compatibility
     final normalizedPath = relativePath.replaceAll('\\', '/');
-
-    // Don't mark these as unused - using more specific matching
+    
+    // Always protect these critical files
     if (normalizedPath == 'lib/main.dart') return true;
+    if (normalizedPath == 'lib/firebase_options.dart') return true;
+    if (normalizedPath == 'lib/generated_plugin_registrant.dart') return true;
+    
+    // Protect all test files
     if (normalizedPath.startsWith('test/')) return true;
+    if (normalizedPath.startsWith('integration_test/')) return true;
+    
+    // Protect generated files
     if (normalizedPath.endsWith('.g.dart')) return true;
     if (normalizedPath.endsWith('.freezed.dart')) return true;
     if (normalizedPath.endsWith('.gr.dart')) return true;
-    if (normalizedPath.endsWith('generated_plugin_registrant.dart')) {
-      return true;
-    }
+    if (normalizedPath.endsWith('.config.dart')) return true;
+    if (normalizedPath.endsWith('generated_plugin_registrant.dart')) return true;
     if (normalizedPath.startsWith('lib/generated/')) return true;
     if (normalizedPath.contains('/generated/')) return true;
-
-    // Protect important app files - using more specific matching
+    
+    // Protect important entry points and app files
     if (normalizedPath.startsWith('lib/main')) return true;
     if (normalizedPath.startsWith('lib/app')) return true;
     if (normalizedPath.endsWith('/main.dart')) return true;
-
+    
+    // Protect example files
+    if (normalizedPath.startsWith('example/')) return true;
+    
+    // Protect build/tool related files
+    if (normalizedPath.startsWith('tool/')) return true;
+    if (normalizedPath.startsWith('scripts/')) return true;
+    
     return false;
   }
 }

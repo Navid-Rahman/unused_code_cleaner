@@ -7,34 +7,20 @@ import '../utils/logger.dart';
 import '../utils/pattern_matcher.dart';
 import '../models/cleanup_options.dart';
 
-/// Analyzes package dependencies to identify unused packages within a Dart/Flutter project.
-///
-/// This analyzer examines package declarations in pubspec.yaml and scans for package
-/// imports in Dart code to identify packages that are declared but never used.
 class PackageAnalyzer {
-  /// Analyzes the project to find unused package dependencies.
-  ///
-  /// [projectPath] - Root path of the project
-  /// [dartFiles] - List of Dart files to scan for package imports
-  /// [options] - Cleanup options including exclude patterns
-  /// Returns a list of unused items representing unused packages.
   Future<List<UnusedItem>> analyze(
       String projectPath, List<File> dartFiles, CleanupOptions options) async {
     final unusedPackages = <UnusedItem>[];
 
     try {
-      // Get dependencies from pubspec.yaml
       final dependencies = await _getDependencies(projectPath);
       Logger.debug('Found ${dependencies.length} dependencies');
 
-      // Find imported packages in Dart files
       final importedPackages = await _findImportedPackages(dartFiles, options);
       Logger.debug('Found ${importedPackages.length} imported packages');
 
-      // Find unused packages
       for (final package in dependencies) {
-        if (!importedPackages.contains(package) &&
-            !_isEssentialPackage(package)) {
+        if (!importedPackages.contains(package) && !_isEssentialPackage(package, projectPath)) {
           unusedPackages.add(UnusedItem(
             name: package,
             path: 'pubspec.yaml',
@@ -52,10 +38,6 @@ class PackageAnalyzer {
     }
   }
 
-  /// Gets package dependencies from pubspec.yaml file.
-  ///
-  /// [projectPath] - Root path of the project
-  /// Returns a list of package names declared as dependencies.
   Future<List<String>> _getDependencies(String projectPath) async {
     final pubspecFile = File(path.join(projectPath, 'pubspec.yaml'));
     final content = await pubspecFile.readAsString();
@@ -67,50 +49,28 @@ class PackageAnalyzer {
       final deps = yaml['dependencies'] as Map;
       dependencies.addAll(deps.keys.map((key) => key.toString()));
     }
-
+    if (yaml['dev_dependencies'] != null) {
+      final devDeps = yaml['dev_dependencies'] as Map;
+      dependencies.addAll(devDeps.keys.map((key) => key.toString()));
+    }
     return dependencies;
   }
 
-  /// Scans Dart files to find imported packages.
-  ///
-  /// Looks for package imports in the form 'package:package_name/...'
-  ///
-  /// [dartFiles] - List of Dart files to scan for imports
-  /// [options] - Cleanup options including exclude patterns
-  /// Returns a set of package names that are imported in the code.
-  Future<Set<String>> _findImportedPackages(
-      List<File> dartFiles, CleanupOptions options) async {
+  Future<Set<String>> _findImportedPackages(List<File> dartFiles, CleanupOptions options) async {
     final imported = <String>{};
 
     for (final file in dartFiles) {
-      // Skip excluded files
       if (PatternMatcher.isExcluded(file.path, options.excludePatterns)) {
         continue;
       }
 
       try {
         final content = await file.readAsString();
-        final lines = content.split('\n');
-
-        for (final line in lines) {
-          final trimmed = line.trim();
-          if (trimmed.startsWith('import \'package:')) {
-            // Extract package name using string parsing
-            final packageStart =
-                trimmed.indexOf('package:') + 8; // Length of 'package:'
-            final remaining = trimmed.substring(packageStart);
-            final slashIndex = remaining.indexOf('/');
-            final quoteIndex = remaining.indexOf('\'');
-
-            if (slashIndex != -1 &&
-                (quoteIndex == -1 || slashIndex < quoteIndex)) {
-              final packageName = remaining.substring(0, slashIndex);
-              imported.add(packageName);
-            } else if (quoteIndex != -1) {
-              final packageName = remaining.substring(0, quoteIndex);
-              imported.add(packageName);
-            }
-          }
+        final importPattern = RegExp(r"import\s+'package:([^/]+)");
+        final matches = importPattern.allMatches(content);
+        for (final match in matches) {
+          final packageName = match.group(1);
+          if (packageName != null) imported.add(packageName);
         }
       } catch (e) {
         Logger.debug('Error reading file ${file.path}: $e');
@@ -120,22 +80,16 @@ class PackageAnalyzer {
     return imported;
   }
 
-  /// Determines if a package is essential and should not be marked as unused.
-  ///
-  /// Essential packages include core Flutter packages and common development tools
-  /// that may not have explicit imports but are still necessary.
-  ///
-  /// [packageName] - Name of the package to check
-  /// Returns true if the package is essential, false otherwise.
-  bool _isEssentialPackage(String packageName) {
-    // Don't mark these as unused - they're core Flutter packages
+  bool _isEssentialPackage(String packageName, String projectPath) {
     final essentialPackages = {
-      'flutter', // Core Flutter SDK
-      'cupertino_icons', // Default iOS-style icons
-      'flutter_test', // Testing framework
-      'flutter_lints', // Code analysis rules
+      'flutter', 'cupertino_icons', 'flutter_test', 'flutter_lints', 'provider', 'get_it',
+      'flutter_hooks', 'riverpod', 'bloc', 'equatable'
     };
-
+    // Dynamic check: Look for package usage in build files
+    final buildFile = File(path.join(projectPath, 'build.yaml'));
+    if (buildFile.existsSync() && buildFile.readAsStringSync().contains(packageName)) {
+      return true;
+    }
     return essentialPackages.contains(packageName);
   }
 }

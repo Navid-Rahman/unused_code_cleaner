@@ -250,8 +250,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/images/      # Asset directory declaration
-    - assets/data/        # Data asset directory
+    - assets/images/used_image.png  # Only specific used asset declared
+    - assets/data/used_data.json    # Only specific used data declared
 ''';
 
   await File(path.join(testDir.path, 'pubspec.yaml'))
@@ -311,11 +311,11 @@ class UnusedClass {
   final assetsDir = Directory(path.join(testDir.path, 'assets', 'images'));
   await assetsDir.create(recursive: true);
 
-  // Create used image (referenced in code, should not be marked as unused)
+  // Create used image (declared in pubspec.yaml, should not be marked as unused)
   await File(path.join(assetsDir.path, 'used_image.png'))
       .writeAsBytes([1, 2, 3, 4]);
 
-  // Create unused image (not referenced anywhere, should be detected as unused)
+  // Create unused image (not declared in pubspec.yaml, should be detected as unused)
   await File(path.join(assetsDir.path, 'unused_image.png'))
       .writeAsBytes([5, 6, 7, 8]);
 
@@ -323,7 +323,11 @@ class UnusedClass {
   final dataDir = Directory(path.join(testDir.path, 'assets', 'data'));
   await dataDir.create(recursive: true);
 
-  // Create unused data file (declared in assets but never used)
+  // Create used data file (declared in pubspec.yaml)
+  await File(path.join(dataDir.path, 'used_data.json'))
+      .writeAsString('{"used": "data"}');
+
+  // Create unused data file (not declared in pubspec.yaml, should be detected as unused)
   await File(path.join(dataDir.path, 'unused_data.json'))
       .writeAsString('{"test": "data"}');
 }

@@ -88,13 +88,13 @@ void main() {
 
 /// Creates a basic test project structure
 Future<void> _createTestProject(Directory baseDir) async {
-  // Create pubspec.yaml with declared assets
+  // Create pubspec.yaml with declared assets (specific files, not entire directory)
   final pubspecFile = File('${baseDir.path}/pubspec.yaml');
   await pubspecFile.writeAsString('''
 name: test_project
 flutter:
   assets:
-    - assets/
+    - assets/image.png  # Only this specific asset is declared
     - images/icon.png
 ''');
 
@@ -103,7 +103,7 @@ flutter:
   await assetsDir.create(recursive: true);
 
   await File('${assetsDir.path}/image.png').writeAsString('fake image');
-  await File('${assetsDir.path}/unused.png').writeAsString('fake unused image');
+  await File('${assetsDir.path}/unused.png').writeAsString('fake unused image'); // This should be unused
 
   final imagesDir = Directory('${baseDir.path}/images');
   await imagesDir.create(recursive: true);

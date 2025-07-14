@@ -56,8 +56,9 @@ class UnusedCodeCleaner {
       // Validate project structure
       await _validateProject(projectPath);
 
-      final dartFiles =
-          await FileUtils.findDartFiles(path.join(projectPath, 'lib'));
+      // CRITICAL FIX: Find ALL Dart files in project, not just lib/
+      // This was causing files outside lib/ to be marked as unused
+      final dartFiles = await FileUtils.findDartFiles(projectPath);
       final totalFiles = dartFiles.length;
 
       Logger.info('Found $totalFiles Dart files to analyze');
@@ -83,6 +84,9 @@ class UnusedCodeCleaner {
       );
 
       _displayResults(result);
+
+      // CRITICAL SAFETY VALIDATION: Check if results seem suspicious
+      _validateResultsSafety(result);
 
       // Handle dry-run mode
       if (options.dryRun) {
@@ -113,6 +117,25 @@ class UnusedCodeCleaner {
   /// - Prevents analysis of the unused_code_cleaner package itself
   /// - Validates project structure
   Future<void> _validateProject(String projectPath) async {
+    // CRITICAL SAFETY CHECK: Check system paths FIRST before checking pubspec.yaml
+    final resolvedPath = path.normalize(path.absolute(projectPath));
+    final systemPaths = [
+      path.join(Platform.environment['USERPROFILE'] ?? '', 'Documents'),
+      path.join(Platform.environment['USERPROFILE'] ?? '', 'Desktop'),
+      'C:\\',
+      'C:\\Windows',
+      'C:\\Program Files',
+      'C:\\Program Files (x86)',
+      'C:\\Users',
+    ];
+
+    for (final systemPath in systemPaths) {
+      if (resolvedPath == path.normalize(path.absolute(systemPath))) {
+        throw ProjectValidationException(
+            'Cannot analyze system directory: $resolvedPath');
+      }
+    }
+
     final pubspecFile = File(path.join(projectPath, 'pubspec.yaml'));
     if (!await pubspecFile.exists()) {
       throw ProjectValidationException(
@@ -130,24 +153,6 @@ class UnusedCodeCleaner {
     if (!await libDir.exists()) {
       throw ProjectValidationException(
           'lib directory not found in $projectPath');
-    }
-
-    // Additional safety checks for critical system directories
-    final resolvedPath = path.normalize(path.absolute(projectPath));
-    final systemPaths = [
-      path.join(Platform.environment['USERPROFILE'] ?? '', 'Documents'),
-      path.join(Platform.environment['USERPROFILE'] ?? '', 'Desktop'),
-      'C:\\',
-      'C:\\Windows',
-      'C:\\Program Files',
-      'C:\\Users',
-    ];
-
-    for (final systemPath in systemPaths) {
-      if (resolvedPath == path.normalize(path.absolute(systemPath))) {
-        throw ProjectValidationException(
-            'Cannot analyze system directory: $resolvedPath');
-      }
     }
 
     Logger.success('Project structure validated');
@@ -623,6 +628,61 @@ class UnusedCodeCleaner {
       }
     } catch (e) {
       Logger.error('Failed to remove package ${item.name}: $e');
+    }
+  }
+
+  /// CRITICAL SAFETY: Validates analysis results to prevent mass deletion
+  void _validateResultsSafety(AnalysisResult result) {
+    final totalUnused = result.totalUnusedItems;
+    final totalScanned = result.totalScannedFiles;
+    
+    // Check for suspiciously high deletion rates
+    bool suspicious = false;
+    final warnings = <String>[];
+    
+    if (result.unusedAssets.length > 20) {
+      suspicious = true;
+      warnings.add('${result.unusedAssets.length} assets marked for deletion');
+    }
+    
+    if (result.unusedFiles.length > 10) {
+      suspicious = true;
+      warnings.add('${result.unusedFiles.length} Dart files marked for deletion');
+    }
+    
+    if (result.unusedPackages.length > 5) {
+      suspicious = true;
+      warnings.add('${result.unusedPackages.length} packages marked for deletion');
+    }
+    
+    if (totalScanned > 0 && (totalUnused / totalScanned) > 0.3) {
+      suspicious = true;
+      warnings.add('${((totalUnused / totalScanned) * 100).round()}% of all scanned items marked for deletion');
+    }
+    
+    if (suspicious) {
+      Logger.warning('🚨 CRITICAL SAFETY WARNING:');
+      Logger.warning('');
+      for (final warning in warnings) {
+        Logger.warning('  • $warning');
+      }
+      Logger.warning('');
+      Logger.warning('This seems EXTREMELY high and may indicate an analysis error.');
+      Logger.warning('');
+      Logger.warning('⚠️  STRONG RECOMMENDATIONS:');
+      Logger.warning('  1. Use --dry-run mode to preview changes');
+      Logger.warning('  2. Review the analysis results carefully');
+      Logger.warning('  3. Check if assets/files are referenced dynamically');
+      Logger.warning('  4. Verify the project structure is correct');
+      Logger.warning('  5. Consider using --exclude patterns for important files');
+      Logger.warning('');
+      
+      // EXTREME SAFETY: If results are highly suspicious, recommend immediate dry-run
+      if (result.unusedAssets.length > 50 || result.unusedFiles.length > 20) {
+        Logger.error('🛑 EXTREME CAUTION: Unusually high number of items marked for deletion!');
+        Logger.error('🛑 This strongly suggests an analysis bug or misconfiguration.');
+        Logger.error('🛑 PLEASE run with --dry-run first and carefully review results!');
+      }
     }
   }
 }

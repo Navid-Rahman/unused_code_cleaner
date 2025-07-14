@@ -66,7 +66,7 @@ class PatternMatcher {
       return true;
     }
 
-    // Manual checks for common exclusions
+    // Manual checks for common exclusions with enhanced safety
     if (normalizedPath.startsWith('.git/') ||
         normalizedPath.startsWith('.dart_tool/') ||
         normalizedPath.startsWith('build/') ||
@@ -75,7 +75,18 @@ class PatternMatcher {
         normalizedPath.endsWith('.gr.dart') ||
         normalizedPath.contains('/generated/') ||
         normalizedPath.startsWith('generated/') ||
-        normalizedPath.contains('/l10n/')) {
+        normalizedPath.contains('/l10n/') ||
+        normalizedPath.startsWith('l10n/') ||
+        // Enhanced: Protect more critical directories
+        normalizedPath.startsWith('.vscode/') ||
+        normalizedPath.startsWith('.idea/') ||
+        normalizedPath.startsWith('.gradle/') ||
+        normalizedPath.startsWith('android/') ||
+        normalizedPath.startsWith('ios/') ||
+        normalizedPath.startsWith('web/') ||
+        normalizedPath.startsWith('windows/') ||
+        normalizedPath.startsWith('macos/') ||
+        normalizedPath.startsWith('linux/')) {
       return true;
     }
 
