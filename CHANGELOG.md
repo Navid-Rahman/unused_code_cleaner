@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.1.1 - CRITICAL PATH NORMALIZATION FIX
+
+**🚨 HOTFIX - FIXES FUNCTION ANALYZER FAILURE**
+
+### Critical Bug Fix:
+
+#### **Function Analyzer Path Error (CRITICAL)**
+- **FIXED**: Function analysis failing with "Only absolute normalized paths are supported: ." error
+- **IMPACT**: Function analysis was completely skipped, causing massive false positives for unused files
+- **SOLUTION**: Added proper path normalization using `path.normalize(path.absolute(projectPath))`
+- **ROOT CAUSE**: Dart analyzer's `AnalysisContextCollection` requires absolute normalized paths
+
+### Changes:
+- Fixed function analyzer path handling in `lib/src/analyzers/function_analyzer.dart`
+- Added `package:path` import for proper path normalization
+- Updated analysis context creation to use absolute paths
+
+---
+
 ## 1.1.0 - MAJOR BUG FIXES & SAFETY IMPROVEMENTS
 
 **🚨 CRITICAL UPDATES - FIXES MAJOR DATA LOSS BUGS**

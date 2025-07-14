@@ -4,22 +4,24 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/yourusername/unused_code_cleaner/pulls)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> **🚨 MAJOR UPDATE - v1.1.0**  
-> **CRITICAL BUG FIXES - MAJOR SAFETY IMPROVEMENTS**  
-> Fixed critical file discovery bugs that could mark all project files as unused.  
-> **Enhanced with comprehensive safety validation and improved analysis accuracy.**
+> **🚨 HOTFIX UPDATE - v1.1.1**  
+> **CRITICAL FUNCTION ANALYZER FIX**  
+> Fixed function analyzer path normalization error that caused massive false positives.  
+> **Function analysis now works correctly, preventing incorrect file marking.**
 
 A powerful and **SAFE** Dart CLI tool to identify and remove unused assets, functions, packages, and files from your Flutter and Dart projects, with comprehensive safety features and beautiful colored logging.
 
 ## 🛡️ ENHANCED SAFETY FEATURES
 
-**NEW IN v1.1.0 - COMPREHENSIVE SAFETY SYSTEM:**
+**LATEST IN v1.1.1 - FUNCTION ANALYZER FIX:**
 
-1. **Multi-layer Safety Validation**: Warns when >75% of assets or >30% of items marked for deletion
-2. **Improved File Discovery**: Now correctly scans entire project for references
-3. **Enhanced Protection**: Better protection for critical files, tests, examples, and platform directories
-4. **Smart Analysis**: Respects pubspec.yaml asset declarations accurately
-5. **Detailed Warnings**: Comprehensive feedback when results seem suspicious
+1. **Fixed Function Analysis**: Resolved path normalization error that caused function analysis to fail
+2. **Improved Accuracy**: Function analysis now properly detects used functions, reducing false positives
+3. **Multi-layer Safety Validation**: Warns when >75% of assets or >30% of items marked for deletion
+4. **Improved File Discovery**: Correctly scans entire project for references
+5. **Enhanced Protection**: Better protection for critical files, tests, examples, and platform directories
+6. **Smart Analysis**: Respects pubspec.yaml asset declarations accurately
+7. **Detailed Warnings**: Comprehensive feedback when results seem suspicious
 
 **ALWAYS FOLLOW THESE SAFETY STEPS:**
 
