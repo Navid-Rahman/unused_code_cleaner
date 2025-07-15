@@ -1,0 +1,21 @@
+# Build artifacts
+
+build/
+\*.exe
+
+# IDE files
+
+\*.iml
+.idea/
+.vscode/
+
+# Test and debug files
+
+debug_patterns.dart
+test_bug_fixes.dart
+validate_fixes.dart
+
+# OS files
+
+.DS_Store
+Thumbs.db
