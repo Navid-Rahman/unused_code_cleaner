@@ -59,4 +59,20 @@ class UnusedItem {
         return '📄 $name';
     }
   }
+
+  /// Returns a formatted file size string (e.g., "1.2 MB", "512 KB").
+  String get formattedSize {
+    if (size == null) return 'N/A';
+
+    final bytes = size!;
+    if (bytes < 1024) return '${bytes}B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)}GB';
+  }
+
+  /// Returns the description or a default value if null.
+  String get safeDescription => description ?? 'No description';
 }

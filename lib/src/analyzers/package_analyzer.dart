@@ -8,19 +8,28 @@ import '../utils/pattern_matcher.dart';
 import '../models/cleanup_options.dart';
 
 class PackageAnalyzer {
+  final String projectPath;
+
+  PackageAnalyzer(this.projectPath);
+
   Future<List<UnusedItem>> analyze(
       String projectPath, List<File> dartFiles, CleanupOptions options) async {
     final unusedPackages = <UnusedItem>[];
 
     try {
-      final dependencies = await _getDependencies(projectPath);
+      final dependencies = await _getDependencies();
       Logger.debug('Found ${dependencies.length} dependencies');
 
       final importedPackages = await _findImportedPackages(dartFiles, options);
       Logger.debug('Found ${importedPackages.length} imported packages');
 
+      final transitiveDeps = await _getTransitiveDependencies();
+      Logger.debug('Found ${transitiveDeps.length} transitive dependencies');
+
       for (final package in dependencies) {
-        if (!importedPackages.contains(package) && !_isEssentialPackage(package, projectPath)) {
+        if (!importedPackages.contains(package) &&
+            !transitiveDeps.contains(package) &&
+            !_isEssentialPackage(package)) {
           unusedPackages.add(UnusedItem(
             name: package,
             path: 'pubspec.yaml',
@@ -38,13 +47,12 @@ class PackageAnalyzer {
     }
   }
 
-  Future<List<String>> _getDependencies(String projectPath) async {
+  Future<List<String>> _getDependencies() async {
     final pubspecFile = File(path.join(projectPath, 'pubspec.yaml'));
     final content = await pubspecFile.readAsString();
     final yaml = loadYaml(content);
 
     final dependencies = <String>[];
-
     if (yaml['dependencies'] != null) {
       final deps = yaml['dependencies'] as Map;
       dependencies.addAll(deps.keys.map((key) => key.toString()));
@@ -56,14 +64,13 @@ class PackageAnalyzer {
     return dependencies;
   }
 
-  Future<Set<String>> _findImportedPackages(List<File> dartFiles, CleanupOptions options) async {
+  Future<Set<String>> _findImportedPackages(
+      List<File> dartFiles, CleanupOptions options) async {
     final imported = <String>{};
-
     for (final file in dartFiles) {
       if (PatternMatcher.isExcluded(file.path, options.excludePatterns)) {
         continue;
       }
-
       try {
         final content = await file.readAsString();
         final importPattern = RegExp(r"import\s+'package:([^/]+)");
@@ -76,20 +83,88 @@ class PackageAnalyzer {
         Logger.debug('Error reading file ${file.path}: $e');
       }
     }
-
     return imported;
   }
 
-  bool _isEssentialPackage(String packageName, String projectPath) {
-    final essentialPackages = {
-      'flutter', 'cupertino_icons', 'flutter_test', 'flutter_lints', 'provider', 'get_it',
-      'flutter_hooks', 'riverpod', 'bloc', 'equatable'
-    };
-    // Dynamic check: Look for package usage in build files
+  Future<Set<String>> _getTransitiveDependencies() async {
+    final transitiveDeps = <String>{};
+
+    // Check pubspec.lock for all resolved dependencies
+    final pubspecLock = File(path.join(projectPath, 'pubspec.lock'));
+    if (await pubspecLock.exists()) {
+      try {
+        final content = await pubspecLock.readAsString();
+        final yaml = loadYaml(content);
+        if (yaml['packages'] != null) {
+          final packages = yaml['packages'] as Map;
+          transitiveDeps.addAll(packages.keys.map((key) => key.toString()));
+        }
+      } catch (e) {
+        Logger.debug('Error reading pubspec.lock: $e');
+      }
+    }
+
+    // Check build.yaml for build dependencies
     final buildFile = File(path.join(projectPath, 'build.yaml'));
-    if (buildFile.existsSync() && buildFile.readAsStringSync().contains(packageName)) {
+    if (await buildFile.exists()) {
+      try {
+        final content = await buildFile.readAsString();
+        final yaml = loadYaml(content);
+        if (yaml['dependencies'] != null) {
+          final deps = yaml['dependencies'] as Map;
+          transitiveDeps.addAll(deps.keys.map((key) => key.toString()));
+        }
+        if (yaml['targets'] != null) {
+          final targets = yaml['targets'] as Map;
+          targets.forEach((key, value) {
+            if (value is Map && value['dependencies'] != null) {
+              final deps = value['dependencies'] as List;
+              transitiveDeps.addAll(deps.map((dep) => dep.toString()));
+            }
+          });
+        }
+      } catch (e) {
+        Logger.debug('Error reading build.yaml: $e');
+      }
+    }
+
+    return transitiveDeps;
+  }
+
+  bool _isEssentialPackage(String packageName) {
+    final essentialPackages = {
+      'flutter',
+      'flutter_test',
+      'cupertino_icons',
+      'flutter_lints',
+      'build_runner',
+      'json_annotation',
+      'freezed',
+      'provider',
+      'get_it',
+      'flutter_hooks',
+      'riverpod',
+      'bloc',
+      'equatable',
+      'meta',
+      'collection',
+      'vector_math',
+      'sky_engine',
+      'material_color_utilities',
+    };
+
+    // Check for generator packages
+    if (packageName.endsWith('_generator') ||
+        packageName.startsWith('build_')) {
       return true;
     }
+
+    // Check for analyzer packages
+    if (packageName.contains('analyzer') ||
+        packageName.contains('source_gen')) {
+      return true;
+    }
+
     return essentialPackages.contains(packageName);
   }
 }

@@ -89,39 +89,42 @@ class FunctionAnalyzer {
   }
 
   bool _isFrameworkMethod(FunctionInfo functionInfo) {
-    final frameworkMethods = {
-      'build',
-      'createState',
-      'initState',
-      'dispose',
-      'didChangeDependencies',
-      'didUpdateWidget',
-      'deactivate',
-      'debugFillProperties',
-      'reassemble',
-      'noSuchMethod',
-      'call',
-      'copyWith',
-      'fromJson',
-      'toJson',
-      'fromMap',
-      'toMap',
-      'when',
-      'map',
-      'maybeMap',
-      'maybeWhen',
-      'toString',
-      'hashCode',
-      'operator=='
-    };
-    return frameworkMethods.contains(functionInfo.name) ||
-        functionInfo.name
-            .startsWith('on') || // Common for callbacks like onPressed
-        functionInfo.name
-            .startsWith('_') || // Private methods can be used internally
-        functionInfo.name
-            .endsWith('Provider') || // Common for Riverpod providers
-        functionInfo.name.contains('Generated'); // Generated code
+    final specialPatterns = [
+      r'^main$',
+      r'^_.*Test$',
+      r'^test.*',
+      r'^setUp$',
+      r'^tearDown$',
+      r'^build$',
+      r'^initState$',
+      r'^dispose$',
+      r'^didChangeDependencies$',
+      r'^didUpdateWidget$',
+      r'^deactivate$',
+      r'^debugFillProperties$',
+      r'^reassemble$',
+      r'^noSuchMethod$',
+      r'^call$',
+      r'^copyWith$',
+      r'^fromJson$',
+      r'^toJson$',
+      r'^fromMap$',
+      r'^toMap$',
+      r'^when$',
+      r'^map$',
+      r'^maybeMap$',
+      r'^maybeWhen$',
+      r'^toString$',
+      r'^hashCode$',
+      r'^operator==$',
+      r'^on[A-Z].*', // Callbacks like onPressed
+    ];
+
+    return specialPatterns
+            .any((pattern) => RegExp(pattern).hasMatch(functionInfo.name)) ||
+        functionInfo.name.endsWith('Provider') ||
+        functionInfo.name.contains('Generated') ||
+        functionInfo.name.startsWith('_'); // Private methods - be conservative
   }
 }
 

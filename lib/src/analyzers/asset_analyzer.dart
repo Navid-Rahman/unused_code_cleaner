@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:path/path.dart' as path;
 import 'package:yaml/yaml.dart';
 
@@ -6,6 +8,7 @@ import '../models/unused_item.dart';
 import '../utils/logger.dart';
 import '../utils/file_utils.dart';
 import '../utils/pattern_matcher.dart';
+import '../utils/ast_utils.dart';
 import '../models/cleanup_options.dart';
 
 class AssetAnalyzer {
@@ -152,26 +155,68 @@ class AssetAnalyzer {
     final packageName = await _getPackageName(projectPath);
     Logger.debug('Project package name: $packageName');
 
-    for (final file in dartFiles) {
-      try {
-        final content = await file.readAsString();
-        _findAssetReferences(content, referenced, 'assets/');
-        _findAssetReferences(content, referenced, 'images/');
-        _findAssetReferences(content, referenced, 'fonts/');
-        _findAssetReferences(content, referenced, 'data/');
-        _findAssetImageReferences(content, referenced);
-        _findImageAssetReferences(content, referenced);
-        _findPackageReferences(content, referenced, packageName);
-        _findConstantReferences(content, referenced);
-        _findVariableReferences(content, referenced);
-        // Enhanced: Check for widget properties (e.g., decoration, child)
-        _findWidgetPropertyReferences(content, referenced);
-      } catch (e) {
-        Logger.debug('Error reading file ${file.path}: $e');
+    // Initialize AST analysis context
+    AstUtils.initializeAnalysisContext(projectPath);
+
+    try {
+      for (final file in dartFiles) {
+        try {
+          final content = await file.readAsString();
+          
+          // Use AST-based analysis for better accuracy
+          final resolvedUnit = await AstUtils.getResolvedUnit(file.path);
+          if (resolvedUnit != null) {
+            final visitor = AssetVariableVisitor(referenced);
+            resolvedUnit.unit.accept(visitor);
+          }
+          
+          // Keep existing string-based detection as fallback
+          _findDirectAssetReferences(content, referenced);
+          _findPackageReferences(content, referenced, packageName);
+          _findWidgetPropertyReferences(content, referenced);
+        } catch (e) {
+          Logger.debug('Error analyzing file ${file.path}: $e');
+        }
+      }
+      
+      // Also check configuration files
+      await _findConfigFileReferences(projectPath, referenced);
+      
+      return referenced;
+    } finally {
+      AstUtils.disposeAnalysisContext();
+    }
+  }
+
+  /// Enhanced method to find direct asset references using multiple patterns
+  void _findDirectAssetReferences(String content, Set<String> referenced) {
+    final patterns = [
+      r'AssetImage\([\'"]([^\'"]+)[\'"]',
+      r'Image\.asset\([\'"]([^\'"]+)[\'"]',
+      r'rootBundle\.load\([\'"]([^\'"]+)[\'"]',
+      r'DefaultAssetBundle\.of\([^)]+\)\.load\([\'"]([^\'"]+)[\'"]',
+      r'[\'"]assets/[^\'"]+[\'"]',
+      r'[\'"]images/[^\'"]+[\'"]',
+      r'[\'"]fonts/[^\'"]+[\'"]',
+      r'[\'"]data/[^\'"]+[\'"]',
+    ];
+
+    for (final pattern in patterns) {
+      final regex = RegExp(pattern);
+      final matches = regex.allMatches(content);
+      for (final match in matches) {
+        if (match.group(1) != null) {
+          referenced.add(PatternMatcher.normalizePath(match.group(1)!));
+        } else if (match.group(0) != null) {
+          // For simple quoted strings, extract the path
+          final quotedString = match.group(0)!;
+          final cleaned = quotedString.replaceAll(RegExp(r'[\'"]'), '');
+          if (cleaned.contains('/')) {
+            referenced.add(PatternMatcher.normalizePath(cleaned));
+          }
+        }
       }
     }
-    await _findConfigFileReferences(projectPath, referenced);
-    return referenced;
   }
 
   Future<String> _getPackageName(String projectPath) async {

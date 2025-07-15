@@ -2,40 +2,56 @@ import 'dart:io';
 import 'package:path/path.dart' as path;
 
 import '../models/unused_item.dart';
+import '../models/dependency_graph.dart';
 import '../utils/logger.dart';
 import '../utils/file_utils.dart';
 import '../utils/pattern_matcher.dart';
 import '../models/cleanup_options.dart';
 
 class FileAnalyzer {
+  final String projectPath;
+  final DependencyGraph dependencyGraph = DependencyGraph();
+
+  FileAnalyzer(this.projectPath);
+
   Future<List<UnusedItem>> analyze(
       String projectPath, List<File> dartFiles, CleanupOptions options) async {
     final unusedFiles = <UnusedItem>[];
 
     try {
-      // CRITICAL FIX: Only analyze files in lib/ for imports, but check all files
-      // Get all dart files in the project for completeness check
-      final allDartFiles = await FileUtils.findDartFiles(projectPath);
-      Logger.debug('Found ${allDartFiles.length} total Dart files');
+      Logger.info('🔍 Starting file analysis...');
 
-      // Find imported files from ALL dart files, not just lib/
-      final importedFiles = await _findImportedFiles(allDartFiles, projectPath, options);
-      Logger.debug('Found ${importedFiles.length} imported files');
+      // Build dependency graph
+      await _buildDependencyGraph(dartFiles, options);
+      Logger.debug(
+          'Built dependency graph with ${dependencyGraph.fileCount} files');
 
-      // Check each file in lib/ directory specifically (main source files)
-      final libDartFiles = allDartFiles.where((file) => 
-        file.path.contains('${path.separator}lib${path.separator}') ||
-        file.path.endsWith('${path.separator}lib')).toList();
+      // Find entry points
+      final entryPoints = await _findEntryPoints();
+      Logger.debug('Found ${entryPoints.length} entry points');
+
+      // Find reachable files
+      final reachableFiles = dependencyGraph.findReachableFiles(entryPoints);
+      Logger.debug('Found ${reachableFiles.length} reachable files');
+
+      // Check each file in lib/ directory
+      final libDartFiles = dartFiles
+          .where((file) =>
+              file.path.contains('${path.separator}lib${path.separator}') ||
+              file.path.endsWith('${path.separator}lib'))
+          .toList();
 
       for (final file in libDartFiles) {
         final relativePath = path.relative(file.path, from: projectPath);
+        final normalizedPath = PatternMatcher.normalizePath(file.path);
 
         if (PatternMatcher.isExcluded(relativePath, options.excludePatterns)) {
           Logger.debug('✅ Skipping excluded file: $relativePath');
           continue;
         }
 
-        if (_isFileImported(file.path, importedFiles) || _isSpecialFile(relativePath)) {
+        if (reachableFiles.contains(normalizedPath) ||
+            _isSpecialFile(relativePath)) {
           Logger.debug('✅ Protecting file: $relativePath');
           continue;
         }
@@ -58,97 +74,132 @@ class FileAnalyzer {
     }
   }
 
-  Future<Set<String>> _findImportedFiles(
-      List<File> dartFiles, String projectPath, CleanupOptions options) async {
-    final imported = <String>{};
-
+  Future<void> _buildDependencyGraph(
+      List<File> dartFiles, CleanupOptions options) async {
     for (final file in dartFiles) {
       if (PatternMatcher.isExcluded(file.path, options.excludePatterns)) {
         continue;
       }
+      final imports = await _findImportedFiles(file, projectPath);
+      dependencyGraph.addFile(file.path, imports);
+    }
+  }
 
-      try {
-        final content = await file.readAsString();
-        final lines = content.split('\n');
+  Future<Set<String>> _findImportedFiles(File file, String projectPath) async {
+    final imported = <String>{};
+    try {
+      final content = await file.readAsString();
+      final lines = content.split('\n');
 
-        for (final line in lines) {
-          final trimmed = line.trim();
-          if (trimmed.startsWith('import \'') && !trimmed.contains('package:')) {
-            final startQuote = trimmed.indexOf('\'', 7);
-            final endQuote = trimmed.indexOf('\'', startQuote + 1);
-            if (startQuote != -1 && endQuote != -1) {
-              String importPath = trimmed.substring(startQuote + 1, endQuote);
-              if (importPath.startsWith('../') || importPath.startsWith('./') || !importPath.contains('/')) {
-                final dir = path.dirname(file.path);
-                importPath = path.normalize(path.join(dir, importPath));
-              } else {
-                importPath = path.join(projectPath, 'lib', importPath);
-              }
-              if (!importPath.endsWith('.dart')) importPath += '.dart';
-              imported.add(PatternMatcher.normalizePath(importPath));
-            }
-          }
-          // Enhanced: Handle part files (e.g., part 'file.dart')
-          if (trimmed.startsWith('part ')) {
-            final startQuote = trimmed.indexOf('\'');
-            final endQuote = trimmed.indexOf('\'', startQuote + 1);
-            if (startQuote != -1 && endQuote != -1) {
-              String partPath = trimmed.substring(startQuote + 1, endQuote);
-              if (!partPath.endsWith('.dart')) partPath += '.dart';
+      for (final line in lines) {
+        final trimmed = line.trim();
+
+        // Handle relative imports
+        if (trimmed.startsWith('import \'') && !trimmed.contains('package:')) {
+          final startQuote = trimmed.indexOf('\'', 7);
+          final endQuote = trimmed.indexOf('\'', startQuote + 1);
+          if (startQuote != -1 && endQuote != -1) {
+            String importPath = trimmed.substring(startQuote + 1, endQuote);
+            if (importPath.startsWith('../') ||
+                importPath.startsWith('./') ||
+                !importPath.contains('/')) {
               final dir = path.dirname(file.path);
-              final fullPath = path.normalize(path.join(dir, partPath));
-              imported.add(PatternMatcher.normalizePath(fullPath));
+              importPath = path.normalize(path.join(dir, importPath));
+            } else {
+              importPath = path.join(projectPath, 'lib', importPath);
             }
+            if (!importPath.endsWith('.dart')) importPath += '.dart';
+            imported.add(PatternMatcher.normalizePath(importPath));
           }
         }
-      } catch (e) {
-        Logger.debug('Error reading file ${file.path}: $e');
-      }
-    }
 
+        // Handle part files
+        if (trimmed.startsWith('part ')) {
+          final startQuote = trimmed.indexOf('\'');
+          final endQuote = trimmed.indexOf('\'', startQuote + 1);
+          if (startQuote != -1 && endQuote != -1) {
+            String partPath = trimmed.substring(startQuote + 1, endQuote);
+            if (!partPath.endsWith('.dart')) partPath += '.dart';
+            final dir = path.dirname(file.path);
+            final fullPath = path.normalize(path.join(dir, partPath));
+            imported.add(PatternMatcher.normalizePath(fullPath));
+          }
+        }
+      }
+    } catch (e) {
+      Logger.debug('Error reading file ${file.path}: $e');
+    }
     return imported;
   }
 
-  bool _isFileImported(String filePath, Set<String> importedFiles) {
-    final normalizedPath = PatternMatcher.normalizePath(filePath);
-    if (importedFiles.contains(normalizedPath)) return true;
-    final withoutExtension = normalizedPath.replaceAll('.dart', '');
-    return importedFiles.any((imported) => imported.replaceAll('.dart', '') == withoutExtension);
+  Future<List<String>> _findEntryPoints() async {
+    final entryPoints = <String>[];
+
+    // Main entry point
+    final mainFile = path.join(projectPath, 'lib', 'main.dart');
+    if (await File(mainFile).exists()) {
+      entryPoints.add(PatternMatcher.normalizePath(mainFile));
+    }
+
+    // Test files are entry points
+    final testDir = Directory(path.join(projectPath, 'test'));
+    if (await testDir.exists()) {
+      await for (final file in testDir.list(recursive: true)) {
+        if (file.path.endsWith('_test.dart')) {
+          entryPoints.add(PatternMatcher.normalizePath(file.path));
+        }
+      }
+    }
+
+    // Integration test files
+    final integrationTestDir =
+        Directory(path.join(projectPath, 'integration_test'));
+    if (await integrationTestDir.exists()) {
+      await for (final file in integrationTestDir.list(recursive: true)) {
+        if (file.path.endsWith('.dart')) {
+          entryPoints.add(PatternMatcher.normalizePath(file.path));
+        }
+      }
+    }
+
+    // Example files
+    final exampleDir = Directory(path.join(projectPath, 'example'));
+    if (await exampleDir.exists()) {
+      await for (final file in exampleDir.list(recursive: true)) {
+        if (file.path.endsWith('.dart')) {
+          entryPoints.add(PatternMatcher.normalizePath(file.path));
+        }
+      }
+    }
+
+    return entryPoints;
   }
 
   bool _isSpecialFile(String relativePath) {
-    final normalizedPath = relativePath.replaceAll('\\', '/');
-    
-    // Always protect these critical files
-    if (normalizedPath == 'lib/main.dart') return true;
-    if (normalizedPath == 'lib/firebase_options.dart') return true;
-    if (normalizedPath == 'lib/generated_plugin_registrant.dart') return true;
-    
-    // Protect all test files
-    if (normalizedPath.startsWith('test/')) return true;
-    if (normalizedPath.startsWith('integration_test/')) return true;
-    
-    // Protect generated files
-    if (normalizedPath.endsWith('.g.dart')) return true;
-    if (normalizedPath.endsWith('.freezed.dart')) return true;
-    if (normalizedPath.endsWith('.gr.dart')) return true;
-    if (normalizedPath.endsWith('.config.dart')) return true;
-    if (normalizedPath.endsWith('generated_plugin_registrant.dart')) return true;
-    if (normalizedPath.startsWith('lib/generated/')) return true;
-    if (normalizedPath.contains('/generated/')) return true;
-    
-    // Protect important entry points and app files
-    if (normalizedPath.startsWith('lib/main')) return true;
-    if (normalizedPath.startsWith('lib/app')) return true;
-    if (normalizedPath.endsWith('/main.dart')) return true;
-    
-    // Protect example files
-    if (normalizedPath.startsWith('example/')) return true;
-    
-    // Protect build/tool related files
-    if (normalizedPath.startsWith('tool/')) return true;
-    if (normalizedPath.startsWith('scripts/')) return true;
-    
-    return false;
+    final normalizedPath = PatternMatcher.normalizePath(relativePath);
+    final specialPatterns = [
+      r'\.g\.dart$',
+      r'\.gr\.dart$',
+      r'\.freezed\.dart$',
+      r'\.part\.dart$',
+      r'main\.dart$',
+      r'firebase_options\.dart$',
+      r'generated_plugin_registrant\.dart$',
+      r'^test/',
+      r'^integration_test/',
+      r'^lib/generated/',
+      r'^example/',
+      r'^tool/',
+      r'^scripts/',
+      r'^android/',
+      r'^ios/',
+      r'^web/',
+      r'^windows/',
+      r'^macos/',
+      r'^linux/',
+    ];
+
+    return specialPatterns
+        .any((pattern) => RegExp(pattern).hasMatch(normalizedPath));
   }
 }
