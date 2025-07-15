@@ -123,25 +123,25 @@ dart run unused_code_cleaner --all
 Remove specific types of unused items:
 
 ```bash
-unused_code_cleaner --assets --packages
+dart run unused_code_cleaner --assets --packages
 ```
 
 Enable verbose logging:
 
 ```bash
-unused_code_cleaner --verbose
+dart run unused_code_cleaner --verbose
 ```
 
 Exclude specific patterns:
 
 ```bash
-unused_code_cleaner --exclude "**/*.g.dart" --exclude "**/*.freezed.dart"
+dart run unused_code_cleaner --exclude "**/*.g.dart" --exclude "**/*.freezed.dart"
 ```
 
 Specify a custom project path:
 
 ```bash
-unused_code_cleaner --path=/path/to/your/project
+dart run unused_code_cleaner --path=/path/to/your/project
 ```
 
 ### Programmatic Usage
