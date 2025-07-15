@@ -1,13 +1,12 @@
 import 'dart:io';
 import 'package:path/path.dart' as path;
-import 'package:yaml/yaml.dart';
 
 import '../models/unused_item.dart';
 import 'logger.dart';
 import 'file_utils.dart';
 
 /// Safe removal utility with backup and recovery capabilities.
-/// 
+///
 /// This class ensures that file removals are safe by creating backups,
 /// validating the project after removal, and providing rollback capabilities.
 class SafeRemoval {
@@ -15,8 +14,7 @@ class SafeRemoval {
   final String backupPath;
 
   SafeRemoval(this.projectPath)
-      : backupPath = path.join(
-            projectPath,
+      : backupPath = path.join(projectPath,
             'unused_code_cleaner_backup_${DateTime.now().toIso8601String().replaceAll(':', '_').replaceAll('.', '_')}');
 
   /// Creates a backup of critical project files before removal.
@@ -32,7 +30,7 @@ class SafeRemoval {
     await _backupFile('pubspec.yaml');
     await _backupFile('pubspec.lock');
     await _backupFile('analysis_options.yaml');
-    
+
     // Backup important directories
     await _backupDirectory('lib');
     await _backupDirectory('assets');
@@ -40,7 +38,7 @@ class SafeRemoval {
     await _backupDirectory('fonts');
     await _backupDirectory('data');
     await _backupDirectory('test');
-    
+
     Logger.success('✅ Backup created successfully');
   }
 
@@ -61,7 +59,7 @@ class SafeRemoval {
     if (await sourceDir.exists()) {
       final destinationDir = Directory(path.join(backupPath, relativePath));
       await destinationDir.create(recursive: true);
-      
+
       await for (final entity in sourceDir.list(recursive: true)) {
         if (entity is File) {
           final relPath = path.relative(entity.path, from: projectPath);
@@ -75,7 +73,8 @@ class SafeRemoval {
   }
 
   /// Safely removes unused items with optional dry-run mode.
-  Future<void> removeUnusedItems(List<UnusedItem> items, {bool dryRun = false}) async {
+  Future<void> removeUnusedItems(List<UnusedItem> items,
+      {bool dryRun = false}) async {
     if (items.isEmpty) {
       Logger.info('No unused items to remove');
       return;
@@ -86,10 +85,14 @@ class SafeRemoval {
     }
 
     try {
-      final assetItems = items.where((item) => item.type == UnusedItemType.asset).toList();
-      final fileItems = items.where((item) => item.type == UnusedItemType.file).toList();
-      final packageItems = items.where((item) => item.type == UnusedItemType.package).toList();
-      final functionItems = items.where((item) => item.type == UnusedItemType.function).toList();
+      final assetItems =
+          items.where((item) => item.type == UnusedItemType.asset).toList();
+      final fileItems =
+          items.where((item) => item.type == UnusedItemType.file).toList();
+      final packageItems =
+          items.where((item) => item.type == UnusedItemType.package).toList();
+      final functionItems =
+          items.where((item) => item.type == UnusedItemType.function).toList();
 
       // Remove assets and files
       for (final item in [...assetItems, ...fileItems]) {
@@ -97,7 +100,7 @@ class SafeRemoval {
           Logger.info('Would remove: ${item.path} (${item.description})');
           continue;
         }
-        
+
         if (await FileUtils.deleteFile(item.path)) {
           Logger.success('🗑️ Removed ${item.path}');
         } else {
@@ -111,7 +114,7 @@ class SafeRemoval {
           Logger.info('Would remove package: ${item.name} from pubspec.yaml');
           continue;
         }
-        
+
         await _removePackage(item.name);
       }
 
@@ -119,7 +122,8 @@ class SafeRemoval {
       if (functionItems.isNotEmpty) {
         Logger.warning('🔧 Function removal requires manual intervention:');
         for (final item in functionItems) {
-          Logger.warning('  - ${item.name} in ${item.path}:${item.lineNumber ?? 'unknown'}');
+          Logger.warning(
+              '  - ${item.name} in ${item.path}:${item.lineNumber ?? 'unknown'}');
         }
       }
 
@@ -150,10 +154,10 @@ class SafeRemoval {
       final updatedLines = <String>[];
       bool inDependencies = false;
       bool inDevDependencies = false;
-      
+
       for (final line in lines) {
         final trimmed = line.trim();
-        
+
         // Check if we're entering a dependencies section
         if (trimmed == 'dependencies:') {
           inDependencies = true;
@@ -165,16 +169,17 @@ class SafeRemoval {
           inDependencies = false;
           inDevDependencies = false;
         }
-        
+
         // Skip the package line if we're in a dependencies section
-        if ((inDependencies || inDevDependencies) && trimmed.startsWith('$packageName:')) {
+        if ((inDependencies || inDevDependencies) &&
+            trimmed.startsWith('$packageName:')) {
           Logger.debug('Removing package line: $line');
           continue;
         }
-        
+
         updatedLines.add(line);
       }
-      
+
       await pubspecFile.writeAsString(updatedLines.join('\n'));
       Logger.success('✅ Removed package $packageName from pubspec.yaml');
     } catch (e) {
@@ -185,7 +190,7 @@ class SafeRemoval {
   /// Validates the project after removal by running flutter analyze and tests.
   Future<void> _validateProject() async {
     Logger.info('🔍 Validating project after removal...');
-    
+
     try {
       // Run flutter analyze
       final analyzeProcess = await Process.run(
@@ -193,7 +198,7 @@ class SafeRemoval {
         ['analyze'],
         workingDirectory: projectPath,
       );
-      
+
       if (analyzeProcess.exitCode == 0) {
         Logger.success('✅ flutter analyze passed');
       } else {
@@ -213,7 +218,7 @@ class SafeRemoval {
           ['test'],
           workingDirectory: projectPath,
         );
-        
+
         if (testProcess.exitCode == 0) {
           Logger.success('✅ flutter test passed');
         } else {
@@ -238,7 +243,7 @@ class SafeRemoval {
     }
 
     Logger.info('📦 Restoring backup from $backupPath');
-    
+
     try {
       await for (final entity in backupDir.list(recursive: true)) {
         if (entity is File) {
@@ -262,13 +267,14 @@ class SafeRemoval {
       final backupPattern = RegExp(r'unused_code_cleaner_backup_.*');
       final projectDir = Directory(projectPath);
       final backupDirs = <Directory>[];
-      
+
       await for (final entity in projectDir.list()) {
-        if (entity is Directory && backupPattern.hasMatch(path.basename(entity.path))) {
+        if (entity is Directory &&
+            backupPattern.hasMatch(path.basename(entity.path))) {
           backupDirs.add(entity);
         }
       }
-      
+
       if (backupDirs.length > 5) {
         // Sort by creation time (newest first)
         backupDirs.sort((a, b) {
@@ -276,11 +282,12 @@ class SafeRemoval {
           final statB = b.statSync();
           return statB.modified.compareTo(statA.modified);
         });
-        
+
         // Remove old backups (keep only 5 most recent)
         for (int i = 5; i < backupDirs.length; i++) {
           await backupDirs[i].delete(recursive: true);
-          Logger.debug('Cleaned up old backup: ${path.basename(backupDirs[i].path)}');
+          Logger.debug(
+              'Cleaned up old backup: ${path.basename(backupDirs[i].path)}');
         }
       }
     } catch (e) {
