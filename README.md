@@ -4,24 +4,25 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/yourusername/unused_code_cleaner/pulls)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> **🚨 HOTFIX UPDATE - v1.1.1**  
-> **CRITICAL FUNCTION ANALYZER FIX**  
-> Fixed function analyzer path normalization error that caused massive false positives.  
-> **Function analysis now works correctly, preventing incorrect file marking.**
+> **� LATEST UPDATE - v1.2.1**  
+> **ASSET ANALYZER COMPILATION FIXES**  
+> Fixed critical compilation errors in asset analyzer that prevented package functionality.  
+> **Enhanced asset detection with AST-based analysis now works correctly.**
 
 A powerful and **SAFE** Dart CLI tool to identify and remove unused assets, functions, packages, and files from your Flutter and Dart projects, with comprehensive safety features and beautiful colored logging.
 
 ## 🛡️ ENHANCED SAFETY FEATURES
 
-**LATEST IN v1.1.1 - FUNCTION ANALYZER FIX:**
+**LATEST IN v1.2.1 - ASSET ANALYZER FIXES:**
 
-1. **Fixed Function Analysis**: Resolved path normalization error that caused function analysis to fail
-2. **Improved Accuracy**: Function analysis now properly detects used functions, reducing false positives
-3. **Multi-layer Safety Validation**: Warns when >75% of assets or >30% of items marked for deletion
-4. **Improved File Discovery**: Correctly scans entire project for references
-5. **Enhanced Protection**: Better protection for critical files, tests, examples, and platform directories
-6. **Smart Analysis**: Respects pubspec.yaml asset declarations accurately
-7. **Detailed Warnings**: Comprehensive feedback when results seem suspicious
+1. **Fixed Compilation Errors**: Resolved asset analyzer compilation issues preventing package execution
+2. **Enhanced Asset Detection**: Improved AST-based asset reference detection with better accuracy
+3. **Simplified Pattern Matching**: More reliable asset path detection replacing problematic regex patterns
+4. **Comprehensive Analysis**: Combines AST-based analysis with string-based detection for maximum coverage
+5. **Multi-layer Safety Validation**: Warns when >75% of assets or >30% of items marked for deletion
+6. **Improved File Discovery**: Correctly scans entire project for references
+7. **Enhanced Protection**: Better protection for critical files, tests, examples, and platform directories
+8. **Smart Analysis**: Respects pubspec.yaml asset declarations accurately
 
 **ALWAYS FOLLOW THESE SAFETY STEPS:**
 
@@ -40,8 +41,8 @@ dart run unused_code_cleaner --all --verbose
 
 🚀 **Features**
 
-- 🖼️ **Asset Analysis**: Safely detects unused images, fonts, JSON files, and other assets
-- ⚡ **Function Analysis**: Identifies unused functions and methods using Dart's AST
+- 🖼️ **Asset Analysis**: Safely detects unused images, fonts, JSON files, and other assets with enhanced AST-based detection
+- ⚡ **Function Analysis**: Identifies unused functions and methods using Dart's AST with improved accuracy
 - 📦 **Package Analysis**: Finds unused dependencies listed in `pubspec.yaml`
 - 📄 **File Analysis**: Locates unused Dart files not imported anywhere
 - 🛡️ **Safety Features**: Dry-run mode, automatic backups, and multiple confirmations
@@ -50,6 +51,7 @@ dart run unused_code_cleaner --all --verbose
 - 📊 **Detailed Reports**: Comprehensive analysis reports with file sizes
 - 🛠 **Customizable**: Supports exclude patterns and configuration files
 - ✅ **Cross-Platform**: Works on all platforms with enhanced path handling
+- 🔍 **AST-Based Analysis**: Advanced code analysis using Dart's Abstract Syntax Tree
 
 📦 **Installation**
 
@@ -63,7 +65,7 @@ Or add it to your `dev_dependencies` in `pubspec.yaml`:
 
 ```yaml
 dev_dependencies:
-  unused_code_cleaner: ^1.0.1
+  unused_code_cleaner: ^1.2.1
 ```
 
 ## 🛡️ Safety Features

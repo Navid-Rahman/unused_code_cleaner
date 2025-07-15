@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.2.2 - DOCUMENTATION UPDATES
+
+**📚 DOCUMENTATION IMPROVEMENTS**
+
+### Documentation Updates:
+
+#### **Enhanced README Documentation**
+
+- **UPDATED**: README to reflect latest v1.2.1 asset analyzer fixes
+- **IMPROVED**: Feature descriptions highlighting AST-based analysis enhancements
+- **CORRECTED**: Installation instructions with current version numbers
+- **ENHANCED**: Safety features documentation with latest improvements
+- **ADDED**: AST-Based Analysis feature highlighting
+
+### Changes:
+
+- Updated version references from 1.0.1 to 1.2.1 in installation examples
+- Enhanced feature descriptions to emphasize improved asset detection accuracy
+- Updated latest features section to highlight asset analyzer compilation fixes
+- Improved documentation clarity for enhanced AST-based analysis capabilities
+
+---
+
 ## 1.2.1 - ASSET ANALYZER COMPILATION FIXES
 
 **🔧 HOTFIX - FIXES ASSET ANALYZER COMPILATION ERRORS**
