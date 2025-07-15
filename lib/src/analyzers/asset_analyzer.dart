@@ -127,11 +127,17 @@ class AssetAnalyzer {
     final normalizedAssetPath = PatternMatcher.normalizePath(assetPath);
     for (final declared in declaredAssets) {
       final normalizedDeclared = PatternMatcher.normalizePath(declared);
-      if (normalizedAssetPath == normalizedDeclared) return true;
+      if (normalizedAssetPath == normalizedDeclared) {
+        return true;
+      }
       if (normalizedDeclared.endsWith('/') &&
-          normalizedAssetPath.startsWith(normalizedDeclared)) return true;
+          normalizedAssetPath.startsWith(normalizedDeclared)) {
+        return true;
+      }
       if (!normalizedDeclared.endsWith('/') &&
-          normalizedAssetPath.startsWith('$normalizedDeclared/')) return true;
+          normalizedAssetPath.startsWith('$normalizedDeclared/')) {
+        return true;
+      }
     }
     return false;
   }
@@ -162,14 +168,14 @@ class AssetAnalyzer {
       for (final file in dartFiles) {
         try {
           final content = await file.readAsString();
-          
+
           // Use AST-based analysis for better accuracy
           final resolvedUnit = await AstUtils.getResolvedUnit(file.path);
           if (resolvedUnit != null) {
             final visitor = AssetVariableVisitor(referenced);
             resolvedUnit.unit.accept(visitor);
           }
-          
+
           // Keep existing string-based detection as fallback
           _findDirectAssetReferences(content, referenced);
           _findPackageReferences(content, referenced, packageName);
@@ -178,10 +184,10 @@ class AssetAnalyzer {
           Logger.debug('Error analyzing file ${file.path}: $e');
         }
       }
-      
+
       // Also check configuration files
       await _findConfigFileReferences(projectPath, referenced);
-      
+
       return referenced;
     } finally {
       AstUtils.disposeAnalysisContext();
@@ -190,30 +196,38 @@ class AssetAnalyzer {
 
   /// Enhanced method to find direct asset references using multiple patterns
   void _findDirectAssetReferences(String content, Set<String> referenced) {
-    final patterns = [
-      r'AssetImage\([\'"]([^\'"]+)[\'"]',
-      r'Image\.asset\([\'"]([^\'"]+)[\'"]',
-      r'rootBundle\.load\([\'"]([^\'"]+)[\'"]',
-      r'DefaultAssetBundle\.of\([^)]+\)\.load\([\'"]([^\'"]+)[\'"]',
-      r'[\'"]assets/[^\'"]+[\'"]',
-      r'[\'"]images/[^\'"]+[\'"]',
-      r'[\'"]fonts/[^\'"]+[\'"]',
-      r'[\'"]data/[^\'"]+[\'"]',
+    // Simple pattern matching for asset references
+    final assetPatterns = [
+      'AssetImage(',
+      'Image.asset(',
+      'rootBundle.load(',
+      'assets/',
+      'images/',
+      'fonts/',
+      'data/',
     ];
 
-    for (final pattern in patterns) {
-      final regex = RegExp(pattern);
-      final matches = regex.allMatches(content);
-      for (final match in matches) {
-        if (match.group(1) != null) {
-          referenced.add(PatternMatcher.normalizePath(match.group(1)!));
-        } else if (match.group(0) != null) {
-          // For simple quoted strings, extract the path
-          final quotedString = match.group(0)!;
-          final cleaned = quotedString.replaceAll(RegExp(r'[\'"]'), '');
-          if (cleaned.contains('/')) {
-            referenced.add(PatternMatcher.normalizePath(cleaned));
-          }
+    final lines = content.split('\n');
+    for (final line in lines) {
+      for (final pattern in assetPatterns) {
+        if (line.contains(pattern)) {
+          _extractAssetPathFromLine(line, referenced);
+        }
+      }
+    }
+  }
+
+  void _extractAssetPathFromLine(String line, Set<String> referenced) {
+    final quotes = ['"', "'"];
+    for (final quote in quotes) {
+      final parts = line.split(quote);
+      for (int i = 1; i < parts.length; i += 2) {
+        final part = parts[i];
+        if (part.contains('assets/') ||
+            part.contains('images/') ||
+            part.contains('fonts/') ||
+            part.contains('data/')) {
+          referenced.add(PatternMatcher.normalizePath(part));
         }
       }
     }
@@ -277,50 +291,6 @@ class AssetAnalyzer {
     }
   }
 
-  void _findAssetImageReferences(String content, Set<String> referenced) {
-    final lines = content.split('\n');
-    for (final line in lines) {
-      if (line.contains('AssetImage(')) {
-        final startIndex = line.indexOf('AssetImage(') + 11;
-        final remaining = line.substring(startIndex);
-        final quoteIndex = remaining.contains('"')
-            ? remaining.indexOf('"')
-            : remaining.indexOf("'");
-        if (quoteIndex != -1) {
-          final quote = remaining[quoteIndex];
-          final endQuote = remaining.indexOf(quote, quoteIndex + 1);
-          if (endQuote != -1) {
-            final assetPath =
-                remaining.substring(quoteIndex + 1, endQuote).trim();
-            referenced.add(PatternMatcher.normalizePath(assetPath));
-          }
-        }
-      }
-    }
-  }
-
-  void _findImageAssetReferences(String content, Set<String> referenced) {
-    final lines = content.split('\n');
-    for (final line in lines) {
-      if (line.contains('Image.asset(')) {
-        final startIndex = line.indexOf('Image.asset(') + 11;
-        final remaining = line.substring(startIndex);
-        final quoteIndex = remaining.contains('"')
-            ? remaining.indexOf('"')
-            : remaining.indexOf("'");
-        if (quoteIndex != -1) {
-          final quote = remaining[quoteIndex];
-          final endQuote = remaining.indexOf(quote, quoteIndex + 1);
-          if (endQuote != -1) {
-            final assetPath =
-                remaining.substring(quoteIndex + 1, endQuote).trim();
-            referenced.add(PatternMatcher.normalizePath(assetPath));
-          }
-        }
-      }
-    }
-  }
-
   void _findPackageReferences(
       String content, Set<String> referenced, String packageName) {
     final lines = content.split('\n');
@@ -335,68 +305,6 @@ class AssetAnalyzer {
                   .replaceFirst('package:$packageName/', '')
                   .split(RegExp(r'[ \t\r\n]'))[0];
               referenced.add(PatternMatcher.normalizePath(assetPath));
-            }
-          }
-        }
-      }
-    }
-  }
-
-  void _findConstantReferences(String content, Set<String> referenced) {
-    final lines = content.split('\n');
-    for (final line in lines) {
-      final trimmed = line.trim();
-      if ((trimmed.startsWith('static const String') ||
-              trimmed.startsWith('const String') ||
-              trimmed.startsWith('final String')) &&
-          trimmed.contains('=')) {
-        final parts = trimmed.split('=');
-        if (parts.length > 1) {
-          final valuePart = parts[1].trim();
-          for (var quote in ['"', "'"]) {
-            if (valuePart.contains(quote)) {
-              final startQuote = valuePart.indexOf(quote) + 1;
-              final endQuote = valuePart.indexOf(quote, startQuote);
-              if (endQuote != -1) {
-                final assetPath =
-                    valuePart.substring(startQuote, endQuote).trim();
-                if (assetPath.contains('assets/') ||
-                    assetPath.contains('images/') ||
-                    assetPath.contains('fonts/') ||
-                    assetPath.contains('data/')) {
-                  referenced.add(PatternMatcher.normalizePath(assetPath));
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  void _findVariableReferences(String content, Set<String> referenced) {
-    final lines = content.split('\n');
-    for (final line in lines) {
-      final trimmed = line.trim();
-      if ((trimmed.contains('String ') || trimmed.contains('var ')) &&
-          trimmed.contains('=')) {
-        final parts = trimmed.split('=');
-        if (parts.length > 1) {
-          final valuePart = parts[1].trim();
-          for (var quote in ['"', "'"]) {
-            if (valuePart.contains(quote)) {
-              final startQuote = valuePart.indexOf(quote) + 1;
-              final endQuote = valuePart.indexOf(quote, startQuote);
-              if (endQuote != -1) {
-                final assetPath =
-                    valuePart.substring(startQuote, endQuote).trim();
-                if (assetPath.contains('assets/') ||
-                    assetPath.contains('images/') ||
-                    assetPath.contains('fonts/') ||
-                    assetPath.contains('data/')) {
-                  referenced.add(PatternMatcher.normalizePath(assetPath));
-                }
-              }
             }
           }
         }
@@ -431,11 +339,17 @@ class AssetAnalyzer {
     if (referencedAssets.contains(normalizedAssetPath)) return true;
     for (final ref in referencedAssets) {
       final normalizedRef = PatternMatcher.normalizePath(ref);
-      if (normalizedAssetPath == normalizedRef) return true;
+      if (normalizedAssetPath == normalizedRef) {
+        return true;
+      }
       if (normalizedRef.endsWith('/') &&
-          normalizedAssetPath.startsWith(normalizedRef)) return true;
+          normalizedAssetPath.startsWith(normalizedRef)) {
+        return true;
+      }
       if (!normalizedRef.endsWith('/') &&
-          normalizedAssetPath.startsWith('$normalizedRef/')) return true;
+          normalizedAssetPath.startsWith('$normalizedRef/')) {
+        return true;
+      }
     }
     return false;
   }
@@ -482,5 +396,72 @@ class AssetAnalyzer {
       Logger.warning(
           'Consider running with --dry-run first to verify results.');
     }
+  }
+}
+
+/// AST visitor to detect asset references in string variables and constants
+class AssetVariableVisitor extends RecursiveAstVisitor<void> {
+  final Set<String> references;
+  final Map<String, String> stringVariables = {};
+
+  AssetVariableVisitor(this.references);
+
+  @override
+  void visitVariableDeclaration(VariableDeclaration node) {
+    if (node.initializer is SimpleStringLiteral) {
+      final value = (node.initializer as SimpleStringLiteral).value;
+      if (_isAssetPath(value)) {
+        stringVariables[node.name.lexeme] = value;
+        references.add(PatternMatcher.normalizePath(value));
+      }
+    }
+    super.visitVariableDeclaration(node);
+  }
+
+  @override
+  void visitSimpleIdentifier(SimpleIdentifier node) {
+    if (stringVariables.containsKey(node.name)) {
+      references.add(PatternMatcher.normalizePath(stringVariables[node.name]!));
+    }
+    super.visitSimpleIdentifier(node);
+  }
+
+  @override
+  void visitSimpleStringLiteral(SimpleStringLiteral node) {
+    final value = node.value;
+    if (_isAssetPath(value)) {
+      references.add(PatternMatcher.normalizePath(value));
+    }
+    super.visitSimpleStringLiteral(node);
+  }
+
+  @override
+  void visitMethodInvocation(MethodInvocation node) {
+    // Check for AssetImage() and Image.asset() calls
+    if (node.methodName.name == 'AssetImage' ||
+        (node.target?.toString() == 'Image' &&
+            node.methodName.name == 'asset')) {
+      if (node.argumentList.arguments.isNotEmpty) {
+        final firstArg = node.argumentList.arguments.first;
+        if (firstArg is SimpleStringLiteral) {
+          references.add(PatternMatcher.normalizePath(firstArg.value));
+        }
+      }
+    }
+    super.visitMethodInvocation(node);
+  }
+
+  bool _isAssetPath(String value) {
+    return value.contains('assets/') ||
+        value.contains('images/') ||
+        value.contains('fonts/') ||
+        value.contains('data/') ||
+        value.contains('.png') ||
+        value.contains('.jpg') ||
+        value.contains('.jpeg') ||
+        value.contains('.svg') ||
+        value.contains('.json') ||
+        value.contains('.ttf') ||
+        value.contains('.otf');
   }
 }
