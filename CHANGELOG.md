@@ -9,7 +9,7 @@
 #### **Enhanced Variable Tracking**
 
 - **NEW**: Complete `AssetVariableVisitor` rewrite with sophisticated variable tracking
-- **ADDED**: Support for `static const`, `final`, and `var` declarations  
+- **ADDED**: Support for `static const`, `final`, and `var` declarations
 - **ENHANCED**: Variable reference chain detection (`kLogo` → `Image.asset(kLogo)`)
 - **IMPROVED**: Class field and property tracking across files
 - **FIXED**: Proper const declaration and usage correlation
