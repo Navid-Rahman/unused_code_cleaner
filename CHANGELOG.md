@@ -1,5 +1,69 @@
 # Changelog
 
+## 1.3.0 - MAJOR FILE ANALYZER FIXES
+
+**🔧 CRITICAL FIXES FOR FILE DETECTION**
+
+### Major Improvements:
+
+#### **Fixed Entry Point Detection**
+
+- **FIXED**: Entry point detection now finds Flutter app `main.dart` in project root
+- **IMPROVED**: Better detection of package entry points in `lib/main.dart`
+- **ENHANCED**: Recursive search for all `main.dart` files in subdirectories
+- **ADDED**: Support for executable files in `bin/` directory
+- **BETTER**: Example directory entry point detection
+
+#### **Enhanced Import Analysis**
+
+- **FIXED**: Support for both single and double quotes in import statements
+- **IMPROVED**: Better relative path resolution (`./`, `../`)
+- **ENHANCED**: Package import detection with proper project name matching
+- **ADDED**: Support for part files and export statements
+- **BETTER**: Path normalization across different platforms
+
+#### **Widget Usage Detection**
+
+- **NEW**: Actual widget usage detection beyond just imports
+- **ADDED**: Constructor call detection (`ClassName()`)
+- **ADDED**: Static access detection (`ClassName.method`)
+- **ADDED**: Type annotation detection (`: ClassName`)
+- **ADDED**: Generic type detection (`List<ClassName>`)
+- **ADDED**: Inheritance detection (`extends ClassName`)
+- **ADDED**: Interface detection (`implements ClassName`)
+- **ADDED**: Mixin detection (`with ClassName`)
+- **ADDED**: Flutter route detection (`home: ClassName()`)
+
+#### **Improved Dependency Graph**
+
+- **ENHANCED**: Bidirectional graph for better relationship tracking
+- **ADDED**: Circular dependency detection and reporting
+- **IMPROVED**: BFS algorithm with iteration limits and duplicate prevention
+- **ADDED**: Comprehensive graph statistics and debugging
+- **BETTER**: Error handling and infinite loop protection
+
+#### **Better Debugging & Analysis**
+
+- **IMPROVED**: Detailed logging with entry point detection info
+- **ADDED**: Analysis summary with dependency statistics
+- **ENHANCED**: Verbose mode with comprehensive debug information
+- **ADDED**: Warning messages when no entry points are found
+- **BETTER**: Error messages with helpful suggestions
+
+### Bug Fixes:
+
+- **CRITICAL**: Fixed issue where all files were marked as unused due to missing entry points
+- **FIXED**: Flutter widget usage not being detected properly
+- **FIXED**: Import detection failing with double quotes
+- **FIXED**: Relative path resolution issues
+- **FIXED**: Dependency graph traversal inefficiencies
+
+### Performance:
+
+- **IMPROVED**: More efficient dependency graph traversal
+- **REDUCED**: False positive rate for unused file detection
+- **ENHANCED**: Better handling of large projects with many dependencies
+
 ## 1.2.2 - DOCUMENTATION UPDATES
 
 **📚 DOCUMENTATION IMPROVEMENTS**
