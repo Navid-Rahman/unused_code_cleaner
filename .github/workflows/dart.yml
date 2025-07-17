@@ -23,36 +23,21 @@ jobs:
       - uses: dart-lang/setup-dart@9a04e6d73cca37bd455e0608d7e5092f881fd603
 
       - name: Install dependencies for main package
-        run: |
-          # Temporarily rename example to avoid dependency resolution conflicts
-          mv example example_temp || true
-          dart pub get
-          mv example_temp example || true
+        run: dart pub get
 
       - name: Verify formatting
-        run: |
-          mv example example_temp || true
-          dart format --output=none --set-exit-if-changed .
-          mv example_temp example || true
+        run: dart format --output=none --set-exit-if-changed .
 
       - name: Analyze project source
-        run: |
-          mv example example_temp || true
-          dart analyze --fatal-infos lib/ bin/ test/
-          mv example_temp example || true
+        run: dart analyze --fatal-infos
 
       - name: Run tests
-        run: |
-          mv example example_temp || true
-          dart test
-          mv example_temp example || true
+        run: dart test
 
       - name: Test CLI tool activation
         run: |
-          mv example example_temp || true
           dart pub global activate --source path .
           dart pub global run unused_code_cleaner --help
-          mv example_temp example || true
 
   # Example app testing (requires Flutter)
   test-flutter-example:
@@ -62,12 +47,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dart-lang/setup-dart@9a04e6d73cca37bd455e0608d7e5092f881fd603
-
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.24.0"
+          flutter-version: "3.24.3"
           channel: "stable"
+
+      - name: Verify example assets exist
+        run: |
+          if [ ! -f "example/assets/used.png" ]; then
+            echo "Creating placeholder asset files..."
+            mkdir -p example/assets
+            echo "# Placeholder for used.png" > example/assets/used.png
+            echo "# Placeholder for unused.png" > example/assets/unused.png
+          fi
 
       - name: Install dependencies for Flutter example
         working-directory: example
@@ -76,3 +68,7 @@ jobs:
       - name: Analyze Flutter example
         working-directory: example
         run: flutter analyze
+
+      - name: Test Flutter example build (debug only)
+        working-directory: example
+        run: flutter build apk --debug

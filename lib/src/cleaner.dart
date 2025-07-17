@@ -23,10 +23,10 @@ import 'exceptions.dart';
 ///
 /// Provides both analysis-only and interactive cleanup capabilities.
 class UnusedCodeCleaner {
-  late final AssetAnalyzer _assetAnalyzer;
-  late final FunctionAnalyzer _functionAnalyzer;
-  late final PackageAnalyzer _packageAnalyzer;
-  late final FileAnalyzer _fileAnalyzer;
+  AssetAnalyzer? _assetAnalyzer;
+  FunctionAnalyzer? _functionAnalyzer;
+  PackageAnalyzer? _packageAnalyzer;
+  FileAnalyzer? _fileAnalyzer;
 
   /// Initializes all analyzer components.
   UnusedCodeCleaner();
@@ -156,28 +156,28 @@ class UnusedCodeCleaner {
   Future<List<UnusedItem>> _analyzeAssets(
       String projectPath, List<File> dartFiles, CleanupOptions options) async {
     logger.Logger.section('📦 ANALYZING ASSETS');
-    return await _assetAnalyzer.analyze(projectPath, dartFiles, options);
+    return await _assetAnalyzer!.analyze(projectPath, dartFiles, options);
   }
 
   /// Analyzes function and method declarations to find unused code.
   Future<List<UnusedItem>> _analyzeFunctions(
       String projectPath, List<File> dartFiles, CleanupOptions options) async {
     logger.Logger.section('⚡ ANALYZING FUNCTIONS');
-    return await _functionAnalyzer.analyze(projectPath, dartFiles, options);
+    return await _functionAnalyzer!.analyze(projectPath, dartFiles, options);
   }
 
   /// Analyzes package dependencies to find unused imports in pubspec.yaml.
   Future<List<UnusedItem>> _analyzePackages(
       String projectPath, List<File> dartFiles, CleanupOptions options) async {
     logger.Logger.section('📦 ANALYZING PACKAGES');
-    return await _packageAnalyzer.analyze(projectPath, dartFiles, options);
+    return await _packageAnalyzer!.analyze(projectPath, dartFiles, options);
   }
 
   /// Analyzes Dart files to find unreferenced source files.
   Future<List<UnusedItem>> _analyzeFiles(
       String projectPath, List<File> dartFiles, CleanupOptions options) async {
     logger.Logger.section('📄 ANALYZING FILES');
-    return await _fileAnalyzer.analyze(projectPath, dartFiles, options);
+    return await _fileAnalyzer!.analyze(projectPath, dartFiles, options);
   }
 
   /// Displays comprehensive analysis results in a formatted output.
