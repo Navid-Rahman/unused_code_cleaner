@@ -24,22 +24,56 @@ jobs:
 
       - name: Install dependencies for main package
         run: |
-          # Only install dependencies for main package, exclude example directory
-          dart pub get --offline || dart pub get
+          # Temporarily move example directory to prevent dependency conflicts
+          if [ -d "example" ]; then
+            mv example example_temp
+          fi
+          dart pub get
+          # Restore example directory
+          if [ -d "example_temp" ]; then
+            mv example_temp example
+          fi
 
       - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed .
+        run: |
+          if [ -d "example" ]; then
+            mv example example_temp
+          fi
+          dart format --output=none --set-exit-if-changed .
+          if [ -d "example_temp" ]; then
+            mv example_temp example
+          fi
 
       - name: Analyze project source
-        run: dart analyze --fatal-infos
+        run: |
+          if [ -d "example" ]; then
+            mv example example_temp
+          fi
+          dart analyze --fatal-infos
+          if [ -d "example_temp" ]; then
+            mv example_temp example
+          fi
 
       - name: Run tests
-        run: dart test
+        run: |
+          if [ -d "example" ]; then
+            mv example example_temp
+          fi
+          dart test
+          if [ -d "example_temp" ]; then
+            mv example_temp example
+          fi
 
       - name: Test CLI tool activation
         run: |
+          if [ -d "example" ]; then
+            mv example example_temp
+          fi
           dart pub global activate --source path .
           dart pub global run unused_code_cleaner --help
+          if [ -d "example_temp" ]; then
+            mv example_temp example
+          fi
 
   # Example app testing (requires Flutter)
   test-flutter-example:
