@@ -103,7 +103,8 @@ flutter:
   await assetsDir.create(recursive: true);
 
   await File('${assetsDir.path}/image.png').writeAsString('fake image');
-  await File('${assetsDir.path}/unused.png').writeAsString('fake unused image'); // This should be unused
+  await File('${assetsDir.path}/unused.png')
+      .writeAsString('fake unused image'); // This should be unused
 
   final imagesDir = Directory('${baseDir.path}/images');
   await imagesDir.create(recursive: true);

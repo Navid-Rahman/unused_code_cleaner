@@ -26,16 +26,20 @@ class FileAnalyzer {
 
       // Find entry points
       final entryPoints = await _findEntryPoints();
-      Logger.debug('Found ${entryPoints.length} entry points: ${entryPoints.join(', ')}');
+      Logger.debug(
+          'Found ${entryPoints.length} entry points: ${entryPoints.join(', ')}');
 
       // Find reachable files
       final reachableFiles = dependencyGraph.findReachableFiles(entryPoints);
-      Logger.debug('Found ${reachableFiles.length} reachable files from entry points');
+      Logger.debug(
+          'Found ${reachableFiles.length} reachable files from entry points');
 
       // Check each file in lib/ directory
-      final libDartFiles = dartFiles.where((file) =>
-          file.path.contains('${path.separator}lib${path.separator}') ||
-          file.path.endsWith('${path.separator}lib')).toList();
+      final libDartFiles = dartFiles
+          .where((file) =>
+              file.path.contains('${path.separator}lib${path.separator}') ||
+              file.path.endsWith('${path.separator}lib'))
+          .toList();
 
       Logger.debug('Analyzing ${libDartFiles.length} files in lib/ directory');
 
@@ -43,15 +47,18 @@ class FileAnalyzer {
         final relativePath = path.relative(file.path, from: projectPath);
         final normalizedPath = PatternMatcher.normalizePath(file.path);
 
-        Logger.debug('Checking file: $relativePath (normalized: $normalizedPath)');
+        Logger.debug(
+            'Checking file: $relativePath (normalized: $normalizedPath)');
 
         if (PatternMatcher.isExcluded(relativePath, options.excludePatterns)) {
           Logger.debug('✅ Skipping excluded file: $relativePath');
           continue;
         }
 
-        if (reachableFiles.contains(normalizedPath) || _isSpecialFile(relativePath)) {
-          Logger.debug('✅ Protecting file: $relativePath (reachable: ${reachableFiles.contains(normalizedPath)}, special: ${_isSpecialFile(relativePath)})');
+        if (reachableFiles.contains(normalizedPath) ||
+            _isSpecialFile(relativePath)) {
+          Logger.debug(
+              '✅ Protecting file: $relativePath (reachable: ${reachableFiles.contains(normalizedPath)}, special: ${_isSpecialFile(relativePath)})');
           continue;
         }
 
@@ -74,18 +81,20 @@ class FileAnalyzer {
     }
   }
 
-  Future<void> _buildDependencyGraph(List<File> dartFiles, CleanupOptions options) async {
+  Future<void> _buildDependencyGraph(
+      List<File> dartFiles, CleanupOptions options) async {
     Logger.debug('Building dependency graph for ${dartFiles.length} files...');
-    
+
     for (final file in dartFiles) {
       if (PatternMatcher.isExcluded(file.path, options.excludePatterns)) {
         continue;
       }
       final imports = await _findImportedFiles(file, projectPath);
       dependencyGraph.addFile(file.path, imports);
-      
+
       if (imports.isNotEmpty) {
-        Logger.debug('File ${path.relative(file.path, from: projectPath)} imports: ${imports.map((i) => path.relative(i, from: projectPath)).join(', ')}');
+        Logger.debug(
+            'File ${path.relative(file.path, from: projectPath)} imports: ${imports.map((i) => path.relative(i, from: projectPath)).join(', ')}');
       }
     }
   }
@@ -98,46 +107,51 @@ class FileAnalyzer {
 
       for (final line in lines) {
         final trimmed = line.trim();
-        
+
         // Handle relative imports (import './file.dart' or import '../file.dart')
         if (trimmed.startsWith('import \'') && !trimmed.contains('package:')) {
           final match = RegExp(r"import\s+'([^']+)'").firstMatch(trimmed);
           if (match != null) {
             String importPath = match.group(1)!;
-            
+
             // Resolve relative path
             final dir = path.dirname(file.path);
             final resolvedPath = path.normalize(path.join(dir, importPath));
-            
+
             // Ensure .dart extension
-            final dartPath = resolvedPath.endsWith('.dart') ? resolvedPath : '$resolvedPath.dart';
-            
+            final dartPath = resolvedPath.endsWith('.dart')
+                ? resolvedPath
+                : '$resolvedPath.dart';
+
             if (await File(dartPath).exists()) {
               imported.add(PatternMatcher.normalizePath(dartPath));
             }
           }
         }
-        
+
         // Handle package imports from same project (package:project_name/...)
         else if (trimmed.startsWith('import \'package:')) {
-          final match = RegExp(r"import\s+'package:([^/]+)/([^']+)'").firstMatch(trimmed);
+          final match =
+              RegExp(r"import\s+'package:([^/]+)/([^']+)'").firstMatch(trimmed);
           if (match != null) {
             final packageName = match.group(1)!;
             final filePath = match.group(2)!;
-            
+
             // Check if it's importing from the same project
-            final projectPackageName = await _getProjectPackageName(projectPath);
+            final projectPackageName =
+                await _getProjectPackageName(projectPath);
             if (packageName == projectPackageName) {
               final fullPath = path.join(projectPath, 'lib', filePath);
-              final dartPath = fullPath.endsWith('.dart') ? fullPath : '$fullPath.dart';
-              
+              final dartPath =
+                  fullPath.endsWith('.dart') ? fullPath : '$fullPath.dart';
+
               if (await File(dartPath).exists()) {
                 imported.add(PatternMatcher.normalizePath(dartPath));
               }
             }
           }
         }
-        
+
         // Handle part files
         else if (trimmed.startsWith('part \'')) {
           final match = RegExp(r"part\s+'([^']+)'").firstMatch(trimmed);
@@ -145,8 +159,10 @@ class FileAnalyzer {
             String partPath = match.group(1)!;
             final dir = path.dirname(file.path);
             final resolvedPath = path.normalize(path.join(dir, partPath));
-            final dartPath = resolvedPath.endsWith('.dart') ? resolvedPath : '$resolvedPath.dart';
-            
+            final dartPath = resolvedPath.endsWith('.dart')
+                ? resolvedPath
+                : '$resolvedPath.dart';
+
             if (await File(dartPath).exists()) {
               imported.add(PatternMatcher.normalizePath(dartPath));
             }
@@ -164,7 +180,8 @@ class FileAnalyzer {
       final pubspecFile = File(path.join(projectPath, 'pubspec.yaml'));
       if (await pubspecFile.exists()) {
         final content = await pubspecFile.readAsString();
-        final nameMatch = RegExp(r'^name:\s*(.+)$', multiLine: true).firstMatch(content);
+        final nameMatch =
+            RegExp(r'^name:\s*(.+)$', multiLine: true).firstMatch(content);
         if (nameMatch != null) {
           return nameMatch.group(1)!.trim();
         }
@@ -177,7 +194,7 @@ class FileAnalyzer {
 
   Future<List<String>> _findEntryPoints() async {
     final entryPoints = <String>[];
-    
+
     // Main entry point
     final mainFile = path.join(projectPath, 'lib', 'main.dart');
     if (await File(mainFile).exists()) {
@@ -197,7 +214,8 @@ class FileAnalyzer {
     }
 
     // Integration test files
-    final integrationTestDir = Directory(path.join(projectPath, 'integration_test'));
+    final integrationTestDir =
+        Directory(path.join(projectPath, 'integration_test'));
     if (await integrationTestDir.exists()) {
       await for (final file in integrationTestDir.list(recursive: true)) {
         if (file.path.endsWith('.dart')) {
@@ -224,11 +242,11 @@ class FileAnalyzer {
   bool _isSpecialFile(String relativePath) {
     final normalizedPath = PatternMatcher.normalizePath(relativePath);
     final specialPatterns = [
-      r'\.g\.dart$',           // Generated files
-      r'\.gr\.dart$',          // Generated route files
-      r'\.freezed\.dart$',     // Freezed generated files
-      r'\.part\.dart$',        // Part files
-      r'main\.dart$',          // Main entry point
+      r'\.g\.dart$', // Generated files
+      r'\.gr\.dart$', // Generated route files
+      r'\.freezed\.dart$', // Freezed generated files
+      r'\.part\.dart$', // Part files
+      r'main\.dart$', // Main entry point
       r'firebase_options\.dart$',
       r'generated_plugin_registrant\.dart$',
       r'^test/',
@@ -247,7 +265,8 @@ class FileAnalyzer {
       r'^\.dart_tool/',
     ];
 
-    final isSpecial = specialPatterns.any((pattern) => RegExp(pattern).hasMatch(normalizedPath));
+    final isSpecial = specialPatterns
+        .any((pattern) => RegExp(pattern).hasMatch(normalizedPath));
     if (isSpecial) {
       Logger.debug('File marked as special: $relativePath');
     }
