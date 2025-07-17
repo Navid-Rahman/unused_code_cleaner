@@ -35,8 +35,10 @@ class FileAnalyzer {
           'Found ${entryPoints.length} entry points: ${entryPoints.map((e) => path.basename(e)).join(', ')}');
 
       if (entryPoints.isEmpty) {
-        Logger.error('❌ No entry points found! All files will be marked as unused.');
-        Logger.info('💡 Make sure your project has a main.dart file in the root or lib/ directory.');
+        Logger.error(
+            '❌ No entry points found! All files will be marked as unused.');
+        Logger.info(
+            '💡 Make sure your project has a main.dart file in the root or lib/ directory.');
         return _markAllFilesAsUnused(dartFiles, projectPath, options);
       }
 
@@ -85,12 +87,13 @@ class FileAnalyzer {
       }
 
       Logger.info('Found ${unusedFiles.length} unused files');
-      
+
       // Print summary if verbose
       if (options.verbose) {
-        _printAnalysisSummary(dartFiles, reachableFiles, unusedFiles, entryPoints);
+        _printAnalysisSummary(
+            dartFiles, reachableFiles, unusedFiles, entryPoints);
       }
-      
+
       return unusedFiles;
     } catch (e) {
       Logger.error('File analysis failed: $e');
@@ -99,9 +102,10 @@ class FileAnalyzer {
   }
 
   /// Mark all files as unused when no entry points are found
-  List<UnusedItem> _markAllFilesAsUnused(List<File> dartFiles, String projectPath, CleanupOptions options) {
+  List<UnusedItem> _markAllFilesAsUnused(
+      List<File> dartFiles, String projectPath, CleanupOptions options) {
     final unusedFiles = <UnusedItem>[];
-    
+
     final libDartFiles = dartFiles
         .where((file) =>
             file.path.contains('${path.separator}lib${path.separator}') ||
@@ -110,7 +114,7 @@ class FileAnalyzer {
 
     for (final file in libDartFiles) {
       final relativePath = path.relative(file.path, from: projectPath);
-      
+
       if (PatternMatcher.isExcluded(relativePath, options.excludePatterns) ||
           _isSpecialFile(relativePath)) {
         continue;
@@ -124,15 +128,15 @@ class FileAnalyzer {
         description: 'Marked as unused (no entry points found)',
       ));
     }
-    
+
     return unusedFiles;
   }
 
   /// Print detailed analysis summary
-  void _printAnalysisSummary(List<File> allFiles, Set<String> reachableFiles, 
+  void _printAnalysisSummary(List<File> allFiles, Set<String> reachableFiles,
       List<UnusedItem> unusedFiles, List<String> entryPoints) {
     Logger.section('📊 ANALYSIS SUMMARY');
-    
+
     final stats = dependencyGraph.getStatistics();
     Logger.info('Total Dart files: ${allFiles.length}');
     Logger.info('Entry points: ${entryPoints.length}');
@@ -140,15 +144,18 @@ class FileAnalyzer {
     Logger.info('Unused files: ${unusedFiles.length}');
     Logger.info('Files in dependency graph: ${stats['totalFiles']}');
     Logger.info('Total dependencies: ${stats['totalDependencies']}');
-    Logger.info('Average dependencies per file: ${stats['averageDependenciesPerFile'].toStringAsFixed(1)}');
-    
+    Logger.info(
+        'Average dependencies per file: ${stats['averageDependenciesPerFile'].toStringAsFixed(1)}');
+
     if (stats['circularDependencies'] > 0) {
-      Logger.warning('⚠️ Found ${stats['circularDependencies']} circular dependencies');
+      Logger.warning(
+          '⚠️ Found ${stats['circularDependencies']} circular dependencies');
     }
-    
+
     if (unusedFiles.isNotEmpty) {
       Logger.section('📝 UNUSED FILES DETAILS');
-      for (final unused in unusedFiles.take(10)) { // Show first 10
+      for (final unused in unusedFiles.take(10)) {
+        // Show first 10
         Logger.info('• ${unused.name} (${unused.description})');
       }
       if (unusedFiles.length > 10) {
@@ -170,7 +177,7 @@ class FileAnalyzer {
         skippedFiles++;
         continue;
       }
-      
+
       try {
         final imports = await _findImportedFiles(file, projectPath);
         dependencyGraph.addFile(file.path, imports);
@@ -189,7 +196,8 @@ class FileAnalyzer {
       }
     }
 
-    Logger.info('Dependency graph built: $processedFiles processed, $filesWithImports with imports, $skippedFiles skipped');
+    Logger.info(
+        'Dependency graph built: $processedFiles processed, $filesWithImports with imports, $skippedFiles skipped');
   }
 
   Future<Set<String>> _findImportedFiles(File file, String projectPath) async {
@@ -222,7 +230,7 @@ class FileAnalyzer {
           if (await File(dartPath).exists()) {
             final normalizedPath = PatternMatcher.normalizePath(dartPath);
             imported.add(normalizedPath);
-            
+
             // Extract class names for widget usage detection
             final className = _extractClassNameFromPath(dartPath);
             if (className != null) {
@@ -232,7 +240,8 @@ class FileAnalyzer {
         }
 
         // Handle package imports from same project with both quotes
-        final packagePattern = RegExp(r'''import\s+['"]package:([^/]+)/([^'"]+)['"]''');
+        final packagePattern =
+            RegExp(r'''import\s+['"]package:([^/]+)/([^'"]+)['"]''');
         final packageMatch = packagePattern.firstMatch(trimmed);
         if (packageMatch != null) {
           final packageName = packageMatch.group(1)!;
@@ -242,12 +251,13 @@ class FileAnalyzer {
           final projectPackageName = await _getProjectPackageName(projectPath);
           if (packageName == projectPackageName) {
             final fullPath = path.join(projectPath, 'lib', filePath);
-            final dartPath = fullPath.endsWith('.dart') ? fullPath : '$fullPath.dart';
+            final dartPath =
+                fullPath.endsWith('.dart') ? fullPath : '$fullPath.dart';
 
             if (await File(dartPath).exists()) {
               final normalizedPath = PatternMatcher.normalizePath(dartPath);
               imported.add(normalizedPath);
-              
+
               // Extract class names for widget usage detection
               final className = _extractClassNameFromPath(dartPath);
               if (className != null) {
@@ -291,9 +301,9 @@ class FileAnalyzer {
       }
 
       // Phase 2: Detect widget/class usage in the file content
-      final usedFiles = await _detectClassUsage(content, importedClasses, projectPath);
+      final usedFiles =
+          await _detectClassUsage(content, importedClasses, projectPath);
       imported.addAll(usedFiles);
-
     } catch (e) {
       Logger.debug('Error reading file ${file.path}: $e');
     }
@@ -304,50 +314,65 @@ class FileAnalyzer {
   String? _extractClassNameFromPath(String filePath) {
     final fileName = path.basenameWithoutExtension(filePath);
     if (fileName.isEmpty) return null;
-    
+
     // Convert snake_case or kebab-case to PascalCase
     final parts = fileName.split(RegExp(r'[_-]'));
-    final className = parts.map((part) => 
-        part.isNotEmpty ? part[0].toUpperCase() + part.substring(1).toLowerCase() : ''
-    ).join('');
-    
+    final className = parts
+        .map((part) => part.isNotEmpty
+            ? part[0].toUpperCase() + part.substring(1).toLowerCase()
+            : '')
+        .join('');
+
     return className.isNotEmpty ? className : null;
   }
 
   /// Detects actual usage of imported classes/widgets in the file content
-  Future<Set<String>> _detectClassUsage(
-      String content, Map<String, String> importedClasses, String projectPath) async {
+  Future<Set<String>> _detectClassUsage(String content,
+      Map<String, String> importedClasses, String projectPath) async {
     final usedFiles = <String>{};
-    
+
     for (final entry in importedClasses.entries) {
       final className = entry.key;
       final filePath = entry.value;
-      
+
       // Common usage patterns for Flutter widgets and Dart classes
       final usagePatterns = [
-        RegExp(r'\b' + className + r'\s*\('),           // Constructor call: ClassName()
-        RegExp(r'\b' + className + r'\s*\.'),           // Static access: ClassName.method
-        RegExp(r':\s*' + className + r'\s*[,\)\s]'),    // Type annotation: Type className
-        RegExp(r'<' + className + r'>'),                // Generic type: List<ClassName>
-        RegExp(r'\b' + className + r'\s+\w+'),          // Variable declaration: ClassName variable
-        RegExp(r'extends\s+' + className + r'\b'),      // Inheritance: extends ClassName
-        RegExp(r'implements\s+' + className + r'\b'),   // Interface: implements ClassName
-        RegExp(r'with\s+' + className + r'\b'),         // Mixin: with ClassName
-        RegExp(r'case\s+' + className + r'\.'),         // Enum access: case ClassName.value
-        RegExp(r'home:\s*' + className + r'\s*\('),     // Flutter route: home: ClassName()
+        RegExp(r'\b' + className + r'\s*\('), // Constructor call: ClassName()
+        RegExp(r'\b' + className + r'\s*\.'), // Static access: ClassName.method
+        RegExp(r':\s*' +
+            className +
+            r'\s*[,\)\s]'), // Type annotation: Type className
+        RegExp(r'<' + className + r'>'), // Generic type: List<ClassName>
+        RegExp(r'\b' +
+            className +
+            r'\s+\w+'), // Variable declaration: ClassName variable
+        RegExp(r'extends\s+' +
+            className +
+            r'\b'), // Inheritance: extends ClassName
+        RegExp(r'implements\s+' +
+            className +
+            r'\b'), // Interface: implements ClassName
+        RegExp(r'with\s+' + className + r'\b'), // Mixin: with ClassName
+        RegExp(r'case\s+' +
+            className +
+            r'\.'), // Enum access: case ClassName.value
+        RegExp(r'home:\s*' +
+            className +
+            r'\s*\('), // Flutter route: home: ClassName()
         RegExp(r'builder:\s*.*' + className + r'\s*\('), // Builder pattern
       ];
-      
+
       // Check if any pattern matches
       for (final pattern in usagePatterns) {
         if (pattern.hasMatch(content)) {
           usedFiles.add(filePath);
-          Logger.debug('Detected usage of $className in ${path.basename(filePath)}');
+          Logger.debug(
+              'Detected usage of $className in ${path.basename(filePath)}');
           break; // Found usage, no need to check other patterns
         }
       }
     }
-    
+
     return usedFiles;
   }
 
@@ -437,9 +462,9 @@ class FileAnalyzer {
     final exampleDir = Directory(path.join(projectPath, 'example'));
     if (await exampleDir.exists()) {
       await for (final file in exampleDir.list(recursive: true)) {
-        if (file.path.endsWith('.dart') && 
-            (path.basename(file.path) == 'main.dart' || 
-             file.path.contains('${path.separator}lib${path.separator}'))) {
+        if (file.path.endsWith('.dart') &&
+            (path.basename(file.path) == 'main.dart' ||
+                file.path.contains('${path.separator}lib${path.separator}'))) {
           entryPoints.add(PatternMatcher.normalizePath(file.path));
           Logger.debug('Found example entry point: ${file.path}');
         }
@@ -447,7 +472,8 @@ class FileAnalyzer {
     }
 
     if (entryPoints.isEmpty) {
-      Logger.warning('⚠️ No entry points found! This might cause all files to be marked as unused.');
+      Logger.warning(
+          '⚠️ No entry points found! This might cause all files to be marked as unused.');
     } else {
       Logger.info('✅ Found ${entryPoints.length} entry points');
     }
