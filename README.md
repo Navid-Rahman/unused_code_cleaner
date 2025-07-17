@@ -4,25 +4,25 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/yourusername/unused_code_cleaner/pulls)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> **� LATEST UPDATE - v1.2.1**  
-> **ASSET ANALYZER COMPILATION FIXES**  
-> Fixed critical compilation errors in asset analyzer that prevented package functionality.  
-> **Enhanced asset detection with AST-based analysis now works correctly.**
+> **🚀 LATEST UPDATE - v1.3.1**  
+> **COMPREHENSIVE ASSET ANALYZER ENHANCEMENT**  
+> Revolutionary asset detection with advanced variable tracking and fuzzy path matching.  
+> **Now properly detects assets referenced through variables like `const kLogo = "path"` → `Image.asset(kLogo)`**
 
 A powerful and **SAFE** Dart CLI tool to identify and remove unused assets, functions, packages, and files from your Flutter and Dart projects, with comprehensive safety features and beautiful colored logging.
 
 ## 🛡️ ENHANCED SAFETY FEATURES
 
-**LATEST IN v1.2.1 - ASSET ANALYZER FIXES:**
+**LATEST IN v1.3.1 - COMPREHENSIVE ASSET ANALYZER ENHANCEMENT:**
 
-1. **Fixed Compilation Errors**: Resolved asset analyzer compilation issues preventing package execution
-2. **Enhanced Asset Detection**: Improved AST-based asset reference detection with better accuracy
-3. **Simplified Pattern Matching**: More reliable asset path detection replacing problematic regex patterns
-4. **Comprehensive Analysis**: Combines AST-based analysis with string-based detection for maximum coverage
-5. **Multi-layer Safety Validation**: Warns when >75% of assets or >30% of items marked for deletion
-6. **Improved File Discovery**: Correctly scans entire project for references
-7. **Enhanced Protection**: Better protection for critical files, tests, examples, and platform directories
-8. **Smart Analysis**: Respects pubspec.yaml asset declarations accurately
+1. **Advanced Variable Tracking**: Complete `AssetVariableVisitor` rewrite with sophisticated variable tracking
+2. **Enhanced AST Analysis**: Method invocation tracking for `Image.asset()`, `AssetImage()`, `rootBundle.load()`
+3. **Robust Pattern Matching**: Multiple regex patterns for different asset usage scenarios
+4. **Fuzzy Path Matching**: Intelligent path matching for different directory structures
+5. **Comprehensive Detection**: Expanded asset file types and directory detection
+6. **Revolutionary Asset Analysis**: Now properly detects `const kLogo = "path"` → `Image.asset(kLogo)` patterns
+7. **Enhanced Debugging**: Detailed analysis summary with variable tracking information
+8. **Safety Improvements**: Better validation thresholds and warning systems
 
 **ALWAYS FOLLOW THESE SAFETY STEPS:**
 
@@ -65,7 +65,7 @@ Or add it to your `dev_dependencies` in `pubspec.yaml`:
 
 ```yaml
 dev_dependencies:
-  unused_code_cleaner: ^1.2.1
+  unused_code_cleaner: ^1.3.1
 ```
 
 ## 🛡️ Safety Features

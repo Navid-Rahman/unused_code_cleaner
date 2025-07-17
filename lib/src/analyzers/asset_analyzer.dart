@@ -672,7 +672,7 @@ class AssetAnalyzer {
 
     Logger.section('📈 STATISTICS');
     Logger.info(
-        'Usage rate: ${usedAssets}/${assetFiles.length} assets (${((usedAssets / assetFiles.length) * 100).round()}%)');
+        'Usage rate: $usedAssets/${assetFiles.length} assets (${((usedAssets / assetFiles.length) * 100).round()}%)');
     Logger.info(
         'Total size: ${(totalSize / 1024 / 1024).toStringAsFixed(1)} MB');
     Logger.info(
