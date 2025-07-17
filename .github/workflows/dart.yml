@@ -23,7 +23,9 @@ jobs:
       - uses: dart-lang/setup-dart@9a04e6d73cca37bd455e0608d7e5092f881fd603
 
       - name: Install dependencies for main package
-        run: dart pub get
+        run: |
+          # Only install dependencies for main package, exclude example directory
+          dart pub get --offline || dart pub get
 
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
