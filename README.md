@@ -4,10 +4,10 @@
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/yourusername/unused_code_cleaner/pulls)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> **🚀 LATEST UPDATE - v1.4.0**  
-> **ENHANCED SEMANTIC ANALYSIS ENGINE**  
-> Revolutionary semantic-based analysis with element tracking and cross-file dependency resolution.  
-> **Now uses advanced semantic analysis by default for 90% more accurate detection with Flutter-aware patterns**
+> **🎯 LATEST UPDATE - v1.5.0**  
+> **COMPREHENSIVE RESULT OVERVIEW & ENHANCED LOGGING**  
+> Revolutionary result display system with project health assessment, comprehensive analysis summary, and actionable improvement recommendations.  
+> **Now provides complete project overview with health scoring and performance metrics**
 
 A powerful and **SAFE** Dart CLI tool to identify and remove unused assets, functions, packages, and files from your Flutter and Dart projects, with comprehensive safety features and beautiful colored logging.
 
@@ -45,7 +45,11 @@ dart run unused_code_cleaner --all --verbose
 - ⚡ **Function Analysis**: Identifies unused functions and methods using enhanced semantic analysis with Flutter awareness
 - 📦 **Package Analysis**: Finds unused dependencies with sophisticated import tracking and element resolution
 - 📄 **File Analysis**: Locates unused Dart files not imported anywhere
-- 🛡️ **Safety Features**: Dry-run mode, automatic backups, and multiple confirmations
+- � **Comprehensive Analysis Summary**: Complete overview of all 4 core functionalities with health assessment
+- 🏥 **Project Health Scoring**: Dynamic health scoring (0-100%) with weighted issue severity assessment
+- 💰 **Actionable Improvement Recommendations**: Clear space savings calculations and optimization suggestions
+- ⏱️ **Performance Metrics**: Analysis time tracking with processing speed and throughput statistics
+- �🛡️ **Safety Features**: Dry-run mode, automatic backups, and multiple confirmations
 - 🎨 **Colored Logging**: Clear, emoji-enhanced, colored console output
 - 🔧 **Interactive Mode**: Prompts for confirmation before removing items
 - 📊 **Detailed Reports**: Comprehensive analysis reports with file sizes
