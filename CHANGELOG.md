@@ -35,9 +35,11 @@
 - **IMPROVED**: Pubspec.yaml configuration pattern detection
 
 ### Breaking Changes:
+
 - None - this is a backward-compatible bug fix release
 
 ### Migration Notes:
+
 - No migration needed - existing usage remains the same
 - Users will see dramatically improved accuracy in package analysis
 
