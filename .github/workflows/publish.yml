@@ -4,9 +4,17 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to publish (e.g., 1.8.0)"
+        description: "Version to publish (e.g., 1.8.1)"
         required: true
         type: string
+  push:
+    tags:
+      - 'v*.*.*'
+
+# Add OIDC token permissions
+permissions:
+  contents: read
+  id-token: write
 
 env:
   PUB_ENVIRONMENT: bot.github
@@ -42,42 +50,57 @@ jobs:
 
       - name: 🏷️ Verify version consistency
         run: |
-          PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | cut -d' ' -f2)
-          INPUT_VERSION="${{ github.event.inputs.version }}"
-
-          if [ "$PUBSPEC_VERSION" != "$INPUT_VERSION" ]; then
-            echo "❌ Version mismatch!"
-            echo "   pubspec.yaml: $PUBSPEC_VERSION"
-            echo "   Input version: $INPUT_VERSION"
-            exit 1
+          # Get version from tag if triggered by tag push, otherwise use input
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            TAG_VERSION=${GITHUB_REF#refs/tags/v}
+            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | cut -d' ' -f2)
+            
+            if [ "$PUBSPEC_VERSION" != "$TAG_VERSION" ]; then
+              echo "❌ Version mismatch!"
+              echo "   pubspec.yaml: $PUBSPEC_VERSION"
+              echo "   Git tag: $TAG_VERSION"
+              exit 1
+            fi
+            
+            echo "✅ Version verified: $PUBSPEC_VERSION"
+            echo "PUBLISH_VERSION=$PUBSPEC_VERSION" >> $GITHUB_ENV
+          else
+            PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | cut -d' ' -f2)
+            INPUT_VERSION="${{ github.event.inputs.version }}"
+            
+            if [ "$PUBSPEC_VERSION" != "$INPUT_VERSION" ]; then
+              echo "❌ Version mismatch!"
+              echo "   pubspec.yaml: $PUBSPEC_VERSION"
+              echo "   Input version: $INPUT_VERSION"
+              exit 1
+            fi
+            
+            echo "✅ Version verified: $PUBSPEC_VERSION"
+            echo "PUBLISH_VERSION=$PUBSPEC_VERSION" >> $GITHUB_ENV
           fi
 
-          echo "✅ Version verified: $PUBSPEC_VERSION"
-
       - name: 🚀 Publish to pub.dev
-        env:
-          PUB_TOKEN: ${{ secrets.PUB_TOKEN }}
         run: |
-          echo "Publishing version ${{ github.event.inputs.version }} to pub.dev..."
-          dart pub token add https://pub.dev --env-var PUB_TOKEN
+          echo "Publishing version $PUBLISH_VERSION to pub.dev using OIDC..."
           dart pub publish --force
 
       - name: 🏷️ Create Git Tag
+        if: github.event_name == 'workflow_dispatch'
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git tag -a "v${{ github.event.inputs.version }}" -m "Release v${{ github.event.inputs.version }}"
-          git push origin "v${{ github.event.inputs.version }}"
+          git tag -a "v$PUBLISH_VERSION" -m "Release v$PUBLISH_VERSION"
+          git push origin "v$PUBLISH_VERSION"
 
       - name: 🎉 Create GitHub Release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ github.event.inputs.version }}
-          release_name: Release v${{ github.event.inputs.version }}
+          tag_name: v${{ env.PUBLISH_VERSION }}
+          release_name: Release v${{ env.PUBLISH_VERSION }}
           body: |
-            ## 🎉 Version ${{ github.event.inputs.version }}
+            ## 🎉 Version ${{ env.PUBLISH_VERSION }}
 
             Successfully published to [pub.dev](https://pub.dev/packages/unused_code_cleaner).
 

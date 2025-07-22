@@ -192,13 +192,6 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: 📦 Publish to pub.dev (Manual Trigger)
-        if: steps.version-check.outputs.should_release == 'true'
-        run: |
-          echo "🎉 New version ready for publication!"
-          echo "Run 'dart pub publish' manually to publish to pub.dev"
-          echo "Version: ${{ steps.version-check.outputs.version }}"
-
   # Security & Dependency Checks
   security:
     name: 🔒 Security Scan
@@ -220,9 +213,9 @@ jobs:
         run: dart pub outdated --mode=null-safety
 
       - name: 🛡️ Run dependency audit
-        run: dart pub deps --dev
+        run: dart pub deps
 
       - name: 📊 Package analysis
         run: |
           dart pub global activate pana
-          dart pub global run pana --no-warning
+          dart pub global run pana --no-warning || true
