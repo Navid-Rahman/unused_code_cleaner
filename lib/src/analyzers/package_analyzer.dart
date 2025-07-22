@@ -118,6 +118,7 @@ class PackageAnalyzer {
           }
         } catch (e) {
           Logger.debug('Error analyzing imports in ${file.path}: $e');
+          // Continue processing other files even if one fails
         }
       }
 
@@ -126,6 +127,9 @@ class PackageAnalyzer {
 
       Logger.debug('Found used packages: ${usedPackages.join(', ')}');
       return usedPackages;
+    } catch (e) {
+      Logger.error('Error in _findUsedPackages: $e');
+      return usedPackages; // Return partial results instead of empty set
     } finally {
       AstUtils.disposeAnalysisContext();
     }
@@ -216,35 +220,48 @@ class SemanticImportVisitor extends RecursiveAstVisitor<void> {
 
   @override
   void visitImportDirective(ImportDirective node) {
-    final uri = node.uri.stringValue;
-    if (uri != null) {
-      final packageName = _extractPackageName(uri);
-      if (packageName != null) {
-        usedPackages.add(packageName);
+    try {
+      final uri = node.uri.stringValue;
+      Logger.debug('Processing import: $uri');
+      if (uri != null && uri.isNotEmpty) {
+        final packageName = _extractPackageName(uri);
+        Logger.debug('Extracted package name: $packageName');
+        if (packageName != null) {
+          usedPackages.add(packageName);
+          Logger.debug('Added package to used set: $packageName');
 
-        // Handle conditional imports
-        for (final configuration in node.configurations) {
-          final configUri = configuration.uri.stringValue;
-          if (configUri != null) {
-            final configPackage = _extractPackageName(configUri);
-            if (configPackage != null) {
-              usedPackages.add(configPackage);
+          // Handle conditional imports
+          for (final configuration in node.configurations) {
+            final configUri = configuration.uri.stringValue;
+            if (configUri != null && configUri.isNotEmpty) {
+              final configPackage = _extractPackageName(configUri);
+              if (configPackage != null) {
+                usedPackages.add(configPackage);
+                Logger.debug('Added conditional package: $configPackage');
+              }
             }
           }
         }
       }
+    } catch (e) {
+      Logger.debug('Error processing import directive: $e');
+      // Ignore errors for individual import directives and continue
     }
     super.visitImportDirective(node);
   }
 
   @override
   void visitExportDirective(ExportDirective node) {
-    final uri = node.uri.stringValue;
-    if (uri != null) {
-      final packageName = _extractPackageName(uri);
-      if (packageName != null) {
-        usedPackages.add(packageName);
+    try {
+      final uri = node.uri.stringValue;
+      if (uri != null && uri.isNotEmpty) {
+        final packageName = _extractPackageName(uri);
+        if (packageName != null) {
+          usedPackages.add(packageName);
+        }
       }
+    } catch (e) {
+      // Ignore errors for individual export directives and continue
     }
     super.visitExportDirective(node);
   }
@@ -270,62 +287,84 @@ class SemanticImportVisitor extends RecursiveAstVisitor<void> {
 
   @override
   void visitAnnotation(Annotation node) {
-    // Track annotation usage which might indicate package dependencies
-    final element = node.element;
-    if (element != null) {
-      final library = element.library;
-      if (library != null) {
-        final librarySource = library.source.uri.toString();
-        final packageName = _extractPackageName(librarySource);
-        if (packageName != null) {
-          usedPackages.add(packageName);
+    try {
+      // Track annotation usage which might indicate package dependencies
+      final element = node.element;
+      if (element != null) {
+        final library = element.library;
+        if (library != null) {
+          final librarySource = library.source.uri.toString();
+          final packageName = _extractPackageName(librarySource);
+          if (packageName != null) {
+            usedPackages.add(packageName);
+          }
         }
       }
+    } catch (e) {
+      // Ignore errors for individual annotations and continue
     }
     super.visitAnnotation(node);
   }
 
   @override
   void visitMethodInvocation(MethodInvocation node) {
-    // Track method invocations that might indicate package usage
-    final element = node.methodName.staticElement;
-    if (element != null) {
-      final library = element.library;
-      if (library != null) {
-        final librarySource = library.source.uri.toString();
-        final packageName = _extractPackageName(librarySource);
-        if (packageName != null) {
-          usedPackages.add(packageName);
+    try {
+      // Track method invocations that might indicate package usage
+      final element = node.methodName.staticElement;
+      if (element != null) {
+        final library = element.library;
+        if (library != null) {
+          final librarySource = library.source.uri.toString();
+          final packageName = _extractPackageName(librarySource);
+          if (packageName != null) {
+            usedPackages.add(packageName);
+          }
         }
       }
+    } catch (e) {
+      // Ignore errors for individual method invocations and continue
     }
     super.visitMethodInvocation(node);
   }
 
   @override
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
-    // Track constructor usage
-    final element = node.constructorName.staticElement;
-    if (element != null) {
-      final library = element.library;
-      final librarySource = library.source.uri.toString();
-      final packageName = _extractPackageName(librarySource);
-      if (packageName != null) {
-        usedPackages.add(packageName);
+    try {
+      // Track constructor usage
+      final element = node.constructorName.staticElement;
+      if (element != null) {
+        final library = element.library;
+        final librarySource = library.source.uri.toString();
+        final packageName = _extractPackageName(librarySource);
+        if (packageName != null) {
+          usedPackages.add(packageName);
+        }
       }
+    } catch (e) {
+      // Ignore errors for individual constructor calls and continue
     }
     super.visitInstanceCreationExpression(node);
   }
 
   String? _extractPackageName(String uri) {
-    if (uri.startsWith('package:')) {
-      final segments = uri.substring(8).split('/');
-      return segments.isNotEmpty ? segments.first : null;
-    } else if (uri.startsWith('dart:')) {
-      // Built-in Dart libraries
-      return 'dart';
+    try {
+      if (uri.startsWith('package:')) {
+        final afterPackage = uri.substring(8);
+        if (afterPackage.isEmpty) return null;
+
+        final segments = afterPackage.split('/');
+        return segments.isNotEmpty && segments.first.isNotEmpty
+            ? segments.first
+            : null;
+      } else if (uri.startsWith('dart:')) {
+        // Built-in Dart libraries
+        return 'dart';
+      }
+      return null;
+    } catch (e) {
+      Logger.debug('Error extracting package name from URI "$uri": $e');
+      return null;
     }
-    return null;
   }
 }
 
