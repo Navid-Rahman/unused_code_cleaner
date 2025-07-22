@@ -36,12 +36,8 @@ class AssetAnalyzer {
       Logger.debug(
           'Found ${assetFiles.length} asset files in project directories');
 
-      print(
-          'DEBUG: About to call _findReferencedAssets with ${dartFiles.length} files');
       final referencedAssets =
           await _findReferencedAssets(dartFiles, projectPath);
-      print(
-          'DEBUG: _findReferencedAssets returned ${referencedAssets.length} references');
       Logger.debug(
           'Found ${referencedAssets.length} referenced assets in code');
 
@@ -171,20 +167,20 @@ class AssetAnalyzer {
       'lib/fonts'
     ];
 
-    print('DEBUG: Looking for assets in project: $projectPath');
+    Logger.debug('Looking for assets in project: $projectPath');
     for (final dirName in assetDirs) {
       final dir = Directory(path.join(projectPath, dirName));
-      print('DEBUG: Checking directory: ${dir.path}');
+      Logger.debug('Checking directory: ${dir.path}');
       if (await dir.exists()) {
-        print('DEBUG: Directory exists, finding asset files...');
+        Logger.debug('Directory exists, finding asset files...');
         final files = await FileUtils.findAssetFiles(dir.path);
-        print('DEBUG: Found ${files.length} asset files in $dirName');
+        Logger.debug('Found ${files.length} asset files in $dirName');
         for (final file in files) {
-          print('DEBUG:   Asset file: ${file.path}');
+          Logger.debug('  Asset file: ${file.path}');
         }
         assets.addAll(files);
       } else {
-        print('DEBUG: Directory does not exist: ${dir.path}');
+        Logger.debug('Directory does not exist: ${dir.path}');
       }
     }
 
@@ -193,13 +189,13 @@ class AssetAnalyzer {
     if (await rootDir.exists()) {
       await for (final entity in rootDir.list(recursive: false)) {
         if (entity is File && _isAssetFile(entity.path)) {
-          print('DEBUG: Found root asset file: ${entity.path}');
+          Logger.debug('Found root asset file: ${entity.path}');
           assets.add(entity);
         }
       }
     }
 
-    print('DEBUG: Total asset files found: ${assets.length}');
+    Logger.debug('Total asset files found: ${assets.length}');
     return assets;
   }
 
@@ -257,9 +253,9 @@ class AssetAnalyzer {
     final referenced = <String>{};
     final packageName = await _getPackageName(projectPath);
 
-    print('DEBUG: Project package name: $packageName');
-    print(
-        'DEBUG: Processing ${dartFiles.length} Dart files for asset references');
+    Logger.debug('Project package name: $packageName');
+    Logger.debug(
+        'Processing ${dartFiles.length} Dart files for asset references');
 
     try {
       int processedFiles = 0;
@@ -267,7 +263,7 @@ class AssetAnalyzer {
 
       for (final file in dartFiles) {
         try {
-          print('DEBUG: Analyzing file: ${file.path}');
+          Logger.debug('Analyzing file: ${file.path}');
           final initialCount = referenced.length;
 
           // Use proper Flutter-style analysis context
@@ -277,29 +273,29 @@ class AssetAnalyzer {
           final parseResult = await analysisSession.getParsedUnit(file.path);
 
           if (parseResult is ParsedUnitResult) {
-            print('DEBUG: Successfully parsed ${file.path}');
+            Logger.debug('Successfully parsed ${file.path}');
             final visitor =
                 FlutterAssetVisitor(referenced, packageName, projectPath);
             parseResult.unit.accept(visitor);
-            print(
-                'DEBUG: FlutterAssetVisitor found ${referenced.length - initialCount} asset references');
+            Logger.debug(
+                'FlutterAssetVisitor found ${referenced.length - initialCount} asset references');
           } else {
-            print(
-                'DEBUG: Failed to parse ${file.path}: ${parseResult.runtimeType}');
+            Logger.debug(
+                'Failed to parse ${file.path}: ${parseResult.runtimeType}');
           }
 
           processedFiles++;
           final newAssets = referenced.length - initialCount;
           if (newAssets > 0) {
             filesWithAssets++;
-            print(
-                'DEBUG: Found $newAssets new asset references in ${path.basename(file.path)}');
+            Logger.debug(
+                'Found $newAssets new asset references in ${path.basename(file.path)}');
             for (final ref in referenced.skip(initialCount)) {
-              print('DEBUG:   Reference: $ref');
+              Logger.debug('  Reference: $ref');
             }
           }
         } catch (e) {
-          print('DEBUG: Error analyzing file ${file.path}: $e');
+          Logger.debug('Error analyzing file ${file.path}: $e');
         }
       }
 
