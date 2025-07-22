@@ -244,6 +244,9 @@ class UnusedCodeCleaner {
       ]);
     }
 
+    // Enhanced comprehensive summary
+    _displayComprehensiveSummary(result);
+
     if (result.totalUnusedItems == 0) {
       logger.Logger.success('🎉 No unused items found! Your project is clean.');
     }
@@ -347,5 +350,164 @@ class UnusedCodeCleaner {
       logger.Logger.error('Cleanup failed: $e');
       logger.Logger.info('Backup created at: ${safeRemoval.backupPath}');
     }
+  }
+
+  /// Displays a comprehensive overview of all 4 core functionality results
+  void _displayComprehensiveSummary(AnalysisResult result) {
+    logger.Logger.title('📋 COMPREHENSIVE ANALYSIS SUMMARY');
+
+    // Calculate total potential savings
+    double totalAssetSize = 0;
+    double totalFileSize = 0;
+
+    for (final asset in result.unusedAssets) {
+      totalAssetSize += asset.size ?? 0;
+    }
+
+    for (final file in result.unusedFiles) {
+      totalFileSize += file.size ?? 0;
+    }
+
+    final totalSizeBytes = totalAssetSize + totalFileSize;
+    final totalSizeMB = totalSizeBytes / (1024 * 1024);
+
+    // Create comprehensive summary table
+    final summaryData = [
+      ['Category', 'Items Found', 'Status', 'Impact'],
+      [
+        '📁 Assets',
+        '${result.unusedAssets.length}',
+        result.unusedAssets.isEmpty ? '✅ Clean' : '⚠️  Issues Found',
+        result.unusedAssets.isEmpty
+            ? 'No wasted space'
+            : '${(totalAssetSize / (1024 * 1024)).toStringAsFixed(2)} MB unused'
+      ],
+      [
+        '⚡ Functions',
+        '${result.unusedFunctions.length}',
+        result.unusedFunctions.isEmpty ? '✅ Clean' : '⚠️  Issues Found',
+        result.unusedFunctions.isEmpty
+            ? 'No dead code'
+            : '${result.unusedFunctions.length} unused functions'
+      ],
+      [
+        '📦 Packages',
+        '${result.unusedPackages.length}',
+        result.unusedPackages.isEmpty ? '✅ Clean' : '⚠️  Issues Found',
+        result.unusedPackages.isEmpty
+            ? 'Dependencies optimized'
+            : '${result.unusedPackages.length} unnecessary deps'
+      ],
+      [
+        '🗃️  Files',
+        '${result.unusedFiles.length}',
+        result.unusedFiles.isEmpty ? '✅ Clean' : '⚠️  Issues Found',
+        result.unusedFiles.isEmpty
+            ? 'No orphaned files'
+            : '${(totalFileSize / (1024 * 1024)).toStringAsFixed(2)} MB orphaned'
+      ],
+    ];
+
+    logger.Logger.table(summaryData);
+
+    // Overall project health assessment
+    final totalIssues = result.totalUnusedItems;
+    final healthScore = _calculateHealthScore(result);
+
+    logger.Logger.section('🏥 PROJECT HEALTH ASSESSMENT');
+
+    if (totalIssues == 0) {
+      logger.Logger.success('🌟 EXCELLENT: Your project is perfectly clean!');
+    } else if (healthScore >= 90) {
+      logger.Logger.success(
+          '🎯 GREAT: Minimal cleanup needed (Health Score: ${healthScore.toStringAsFixed(1)}%)');
+    } else if (healthScore >= 70) {
+      logger.Logger.warning(
+          '💡 GOOD: Some optimization opportunities (Health Score: ${healthScore.toStringAsFixed(1)}%)');
+    } else if (healthScore >= 50) {
+      logger.Logger.warning(
+          '⚠️  NEEDS ATTENTION: Notable cleanup required (Health Score: ${healthScore.toStringAsFixed(1)}%)');
+    } else {
+      logger.Logger.error(
+          '🚨 CRITICAL: Significant cleanup needed (Health Score: ${healthScore.toStringAsFixed(1)}%)');
+    }
+
+    // Potential improvements summary
+    if (totalIssues > 0) {
+      logger.Logger.section('💰 POTENTIAL IMPROVEMENTS');
+      final improvements = <String>[];
+
+      if (result.unusedAssets.isNotEmpty) {
+        improvements.add(
+            '🗂️  Remove ${result.unusedAssets.length} unused assets → Save ${(totalAssetSize / (1024 * 1024)).toStringAsFixed(2)} MB');
+      }
+
+      if (result.unusedFunctions.isNotEmpty) {
+        improvements.add(
+            '🧹 Clean ${result.unusedFunctions.length} unused functions → Reduce code complexity');
+      }
+
+      if (result.unusedPackages.isNotEmpty) {
+        improvements.add(
+            '📉 Remove ${result.unusedPackages.length} unused packages → Faster builds & smaller app');
+      }
+
+      if (result.unusedFiles.isNotEmpty) {
+        improvements.add(
+            '🗃️  Delete ${result.unusedFiles.length} orphaned files → Save ${(totalFileSize / (1024 * 1024)).toStringAsFixed(2)} MB');
+      }
+
+      for (final improvement in improvements) {
+        logger.Logger.info('  • $improvement');
+      }
+
+      if (totalSizeBytes > 0) {
+        logger.Logger.info('');
+        logger.Logger.info(
+            '💾 Total potential space savings: ${totalSizeMB.toStringAsFixed(2)} MB');
+      }
+    }
+
+    // Analysis performance summary
+    logger.Logger.section('⏱️  ANALYSIS PERFORMANCE');
+    logger.Logger.info(
+        '📊 Total analysis time: ${result.analysisTime.inMilliseconds}ms');
+    logger.Logger.info('📄 Files scanned: ${result.totalScannedFiles}');
+    if (result.analysisTime.inSeconds > 0) {
+      logger.Logger.info(
+          '⚡ Performance: ${(result.totalScannedFiles / result.analysisTime.inSeconds).toStringAsFixed(1)} files/second');
+    }
+
+    logger.Logger.info('');
+    logger.Logger.info('─' * 50);
+  }
+
+  /// Calculates a health score (0-100) based on the analysis results
+  double _calculateHealthScore(AnalysisResult result) {
+    final totalFiles = result.totalScannedFiles;
+    if (totalFiles == 0) return 100.0;
+
+    // Weight different issues differently
+    final assetWeight = 0.3;
+    final functionWeight = 0.4;
+    final packageWeight = 0.2;
+    final fileWeight = 0.1;
+
+    // Calculate penalties (normalized by total files to make it relative)
+    final assetPenalty =
+        (result.unusedAssets.length / totalFiles) * assetWeight * 100;
+    final functionPenalty =
+        (result.unusedFunctions.length / totalFiles) * functionWeight * 100;
+    final packagePenalty = (result.unusedPackages.length / 10) *
+        packageWeight *
+        100; // Assuming max 10 packages is reasonable
+    final filePenalty =
+        (result.unusedFiles.length / totalFiles) * fileWeight * 100;
+
+    final totalPenalty =
+        assetPenalty + functionPenalty + packagePenalty + filePenalty;
+    final healthScore = (100 - totalPenalty).clamp(0.0, 100.0);
+
+    return healthScore;
   }
 }
