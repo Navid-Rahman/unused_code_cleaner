@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
+import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
+import 'package:analyzer/dart/analysis/results.dart';
 import 'package:path/path.dart' as path;
 import 'package:yaml/yaml.dart';
 
@@ -8,11 +10,11 @@ import '../models/unused_item.dart';
 import '../utils/logger.dart';
 import '../utils/pattern_matcher.dart';
 import '../models/cleanup_options.dart';
-import '../utils/ast_utils.dart';
 
-/// Enhanced package analyzer using semantic import analysis
+/// Enhanced package analyzer using proper dependency resolution
 class PackageAnalyzer {
   final String projectPath;
+  AnalysisContextCollection? _collection;
 
   PackageAnalyzer(this.projectPath);
 
@@ -21,14 +23,28 @@ class PackageAnalyzer {
     final unusedPackages = <UnusedItem>[];
 
     try {
-      Logger.info('🔍 Starting enhanced package analysis (semantic-based)...');
+      Logger.info('🔍 Starting enhanced package dependency analysis...');
+
+      // Initialize analysis context collection with proper package resolution
+      _collection = AnalysisContextCollection(
+        includedPaths: [path.normalize(path.absolute(projectPath))],
+        excludedPaths: [
+          path.join(projectPath, '.dart_tool'),
+          path.join(projectPath, 'build'),
+          path.join(projectPath, '.pub'),
+        ],
+      );
 
       final declaredDependencies = await _getDeclaredDependencies(projectPath);
       Logger.debug(
           'Found ${declaredDependencies.length} declared dependencies');
 
-      final usedPackages = await _findUsedPackages(dartFiles, projectPath);
+      final usedPackages =
+          await _findUsedPackagesWithProperResolution(dartFiles, projectPath);
       Logger.debug('Found ${usedPackages.length} used packages');
+
+      // Add packages that are implicitly used by Flutter
+      _addImplicitlyUsedPackages(usedPackages, projectPath);
 
       for (final packageName in declaredDependencies.keys) {
         if (PatternMatcher.isExcluded(packageName, options.excludePatterns)) {
@@ -55,9 +71,12 @@ class PackageAnalyzer {
       Logger.info(
           'Enhanced package analysis complete: ${unusedPackages.length} unused packages found');
       return unusedPackages;
-    } catch (e) {
+    } catch (e, stackTrace) {
       Logger.error('Enhanced package analysis failed: $e');
+      Logger.debug('Stack trace: $stackTrace');
       return [];
+    } finally {
+      _collection = null;
     }
   }
 
@@ -102,36 +121,171 @@ class PackageAnalyzer {
     }
   }
 
-  Future<Set<String>> _findUsedPackages(
+  Future<Set<String>> _findUsedPackagesWithProperResolution(
       List<File> dartFiles, String projectPath) async {
     final usedPackages = <String>{};
 
-    AstUtils.initializeAnalysisContext(projectPath);
-
     try {
+      Logger.info(
+          '🔍 Analyzing ${dartFiles.length} files for package usage...');
+
       for (final file in dartFiles) {
         try {
-          final resolvedUnit = await AstUtils.getResolvedUnit(file.path);
-          if (resolvedUnit != null) {
-            final visitor = SemanticImportVisitor(usedPackages);
-            resolvedUnit.unit.accept(visitor);
+          final context = _collection!.contextFor(file.path);
+          final result =
+              await context.currentSession.getResolvedUnit(file.path);
+
+          if (result is ResolvedUnitResult) {
+            final visitor = EnhancedPackageUsageVisitor(usedPackages);
+            result.unit.accept(visitor);
+            Logger.debug('✅ Analyzed ${file.path} successfully');
+          } else {
+            // Fallback to basic import parsing for files with errors
+            Logger.debug('⚠️ Falling back to basic parsing for ${file.path}');
+            await _parseImportsBasic(file, usedPackages);
           }
         } catch (e) {
-          Logger.debug('Error analyzing imports in ${file.path}: $e');
-          // Continue processing other files even if one fails
+          Logger.debug('❌ Error analyzing ${file.path}: $e');
+          // Continue with basic import parsing as fallback
+          await _parseImportsBasic(file, usedPackages);
         }
       }
 
-      // Also check pubspec.yaml for flutter dependencies
+      // Check for Flutter-specific usage patterns
       await _checkFlutterSpecificUsage(projectPath, usedPackages);
 
-      Logger.debug('Found used packages: ${usedPackages.join(', ')}');
+      // Check for pubspec.yaml references
+      await _checkPubspecReferences(projectPath, usedPackages);
+
+      // Check for generated file patterns
+      await _checkGeneratedFilePatterns(dartFiles, usedPackages);
+
+      Logger.info(
+          '📦 Found ${usedPackages.length} used packages: ${usedPackages.join(', ')}');
       return usedPackages;
     } catch (e) {
-      Logger.error('Error in _findUsedPackages: $e');
-      return usedPackages; // Return partial results instead of empty set
-    } finally {
-      AstUtils.disposeAnalysisContext();
+      Logger.error('Error in _findUsedPackagesWithProperResolution: $e');
+      return usedPackages;
+    }
+  }
+
+  Future<void> _parseImportsBasic(File file, Set<String> usedPackages) async {
+    try {
+      final content = await file.readAsString();
+      final lines = content.split('\n');
+
+      for (final line in lines) {
+        final trimmed = line.trim();
+        if (trimmed.startsWith('import ') || trimmed.startsWith('export ')) {
+          final match =
+              RegExp(r'''['"](package:([^/']+)/[^'"]*|dart:[^'"]*)['"']''')
+                  .firstMatch(trimmed);
+          if (match != null) {
+            final uri = match.group(1)!;
+            final packageName = _extractPackageName(uri);
+            if (packageName != null) {
+              usedPackages.add(packageName);
+              Logger.debug(
+                  '📦 Found package import: $packageName in ${path.basename(file.path)}');
+            }
+          }
+        }
+      }
+    } catch (e) {
+      Logger.debug('Error parsing imports in ${file.path}: $e');
+    }
+  }
+
+  void _addImplicitlyUsedPackages(
+      Set<String> usedPackages, String projectPath) {
+    // Add Flutter if it's a Flutter project
+    if (_isFlutterProject(projectPath)) {
+      usedPackages.add('flutter');
+
+      // Add commonly implicitly used Flutter packages
+      usedPackages.addAll([
+        'flutter_test', // Often used but not explicitly imported
+        'sky_engine', // Core Flutter dependency
+      ]);
+    }
+
+    // Add Dart SDK packages that are always implicitly available
+    usedPackages.add('dart');
+  }
+
+  bool _isFlutterProject(String projectPath) {
+    try {
+      final pubspecFile = File(path.join(projectPath, 'pubspec.yaml'));
+      if (pubspecFile.existsSync()) {
+        final content = pubspecFile.readAsStringSync();
+        return content.contains('flutter:') ||
+            content.contains('flutter_test:') ||
+            content.contains('uses-material-design:');
+      }
+    } catch (e) {
+      Logger.debug('Error checking if Flutter project: $e');
+    }
+    return false;
+  }
+
+  Future<void> _checkPubspecReferences(
+      String projectPath, Set<String> usedPackages) async {
+    try {
+      final pubspecFile = File(path.join(projectPath, 'pubspec.yaml'));
+      if (!await pubspecFile.exists()) return;
+
+      final content = await pubspecFile.readAsString();
+      final yaml = loadYaml(content);
+
+      // Check for flutter section usage
+      if (yaml['flutter'] != null) {
+        usedPackages.add('flutter');
+
+        final flutter = yaml['flutter'];
+        if (flutter is Map) {
+          // Check for assets - indicates possible use of asset-related packages
+          if (flutter['assets'] != null) {
+            // Don't add specific packages here, just note the usage pattern
+          }
+
+          // Check for fonts
+          if (flutter['fonts'] != null) {
+            // Don't add specific packages here
+          }
+
+          // Check for plugin usage
+          if (flutter['plugin'] != null) {
+            usedPackages.add('flutter');
+          }
+        }
+      }
+
+      // Check for build_runner configuration
+      if (content.contains('build_runner') || content.contains('build.yaml')) {
+        usedPackages.add('build_runner');
+      }
+    } catch (e) {
+      Logger.debug('Error checking pubspec references: $e');
+    }
+  }
+
+  Future<void> _checkGeneratedFilePatterns(
+      List<File> dartFiles, Set<String> usedPackages) async {
+    for (final file in dartFiles) {
+      final fileName = path.basename(file.path);
+
+      // Check for generated files and their associated packages
+      if (fileName.endsWith('.g.dart')) {
+        usedPackages.addAll(['json_annotation', 'build_runner']);
+      } else if (fileName.endsWith('.freezed.dart')) {
+        usedPackages.addAll(['freezed', 'freezed_annotation']);
+      } else if (fileName.endsWith('.gr.dart')) {
+        usedPackages.add('auto_route');
+      } else if (fileName.endsWith('.chopper.dart')) {
+        usedPackages.add('chopper');
+      } else if (fileName.endsWith('.retrofit.dart')) {
+        usedPackages.add('retrofit');
+      }
     }
   }
 
@@ -191,9 +345,11 @@ class PackageAnalyzer {
       'freezed_annotation',
       'retrofit',
       'dio',
+      'sky_engine',
+      'dart',
     };
 
-    // Development tools
+    // Development tools that are commonly used indirectly
     final devTools = {
       'build_runner',
       'json_serializable',
@@ -208,27 +364,46 @@ class PackageAnalyzer {
     return essentialPackages.contains(packageName) ||
         devTools.contains(packageName) ||
         packageName.endsWith('_generator') ||
-        packageName.endsWith('_builder');
+        packageName.endsWith('_builder') ||
+        packageName.startsWith('dart:');
+  }
+
+  String? _extractPackageName(String uri) {
+    try {
+      if (uri.startsWith('package:')) {
+        final afterPackage = uri.substring(8);
+        if (afterPackage.isEmpty) return null;
+
+        final segments = afterPackage.split('/');
+        return segments.isNotEmpty && segments.first.isNotEmpty
+            ? segments.first
+            : null;
+      } else if (uri.startsWith('dart:')) {
+        // Built-in Dart libraries
+        return 'dart';
+      }
+      return null;
+    } catch (e) {
+      Logger.debug('Error extracting package name from URI "$uri": $e');
+      return null;
+    }
   }
 }
 
-/// Semantic visitor for import analysis
-class SemanticImportVisitor extends RecursiveAstVisitor<void> {
+/// Enhanced visitor for proper package usage detection
+class EnhancedPackageUsageVisitor extends RecursiveAstVisitor<void> {
   final Set<String> usedPackages;
 
-  SemanticImportVisitor(this.usedPackages);
+  EnhancedPackageUsageVisitor(this.usedPackages);
 
   @override
   void visitImportDirective(ImportDirective node) {
     try {
       final uri = node.uri.stringValue;
-      Logger.debug('Processing import: $uri');
       if (uri != null && uri.isNotEmpty) {
         final packageName = _extractPackageName(uri);
-        Logger.debug('Extracted package name: $packageName');
         if (packageName != null) {
           usedPackages.add(packageName);
-          Logger.debug('Added package to used set: $packageName');
 
           // Handle conditional imports
           for (final configuration in node.configurations) {
@@ -237,14 +412,12 @@ class SemanticImportVisitor extends RecursiveAstVisitor<void> {
               final configPackage = _extractPackageName(configUri);
               if (configPackage != null) {
                 usedPackages.add(configPackage);
-                Logger.debug('Added conditional package: $configPackage');
               }
             }
           }
         }
       }
     } catch (e) {
-      Logger.debug('Error processing import directive: $e');
       // Ignore errors for individual import directives and continue
     }
     super.visitImportDirective(node);
@@ -273,77 +446,14 @@ class SemanticImportVisitor extends RecursiveAstVisitor<void> {
     if (uri != null) {
       // Check for common generated file patterns
       if (uri.endsWith('.g.dart')) {
-        usedPackages.add('json_annotation');
-        usedPackages.add('build_runner');
+        usedPackages.addAll(['json_annotation', 'build_runner']);
       } else if (uri.endsWith('.freezed.dart')) {
-        usedPackages.add('freezed');
-        usedPackages.add('freezed_annotation');
+        usedPackages.addAll(['freezed', 'freezed_annotation']);
       } else if (uri.endsWith('.gr.dart')) {
         usedPackages.add('auto_route');
       }
     }
     super.visitPartDirective(node);
-  }
-
-  @override
-  void visitAnnotation(Annotation node) {
-    try {
-      // Track annotation usage which might indicate package dependencies
-      final element = node.element;
-      if (element != null) {
-        final library = element.library;
-        if (library != null) {
-          final librarySource = library.source.uri.toString();
-          final packageName = _extractPackageName(librarySource);
-          if (packageName != null) {
-            usedPackages.add(packageName);
-          }
-        }
-      }
-    } catch (e) {
-      // Ignore errors for individual annotations and continue
-    }
-    super.visitAnnotation(node);
-  }
-
-  @override
-  void visitMethodInvocation(MethodInvocation node) {
-    try {
-      // Track method invocations that might indicate package usage
-      final element = node.methodName.staticElement;
-      if (element != null) {
-        final library = element.library;
-        if (library != null) {
-          final librarySource = library.source.uri.toString();
-          final packageName = _extractPackageName(librarySource);
-          if (packageName != null) {
-            usedPackages.add(packageName);
-          }
-        }
-      }
-    } catch (e) {
-      // Ignore errors for individual method invocations and continue
-    }
-    super.visitMethodInvocation(node);
-  }
-
-  @override
-  void visitInstanceCreationExpression(InstanceCreationExpression node) {
-    try {
-      // Track constructor usage
-      final element = node.constructorName.staticElement;
-      if (element != null) {
-        final library = element.library;
-        final librarySource = library.source.uri.toString();
-        final packageName = _extractPackageName(librarySource);
-        if (packageName != null) {
-          usedPackages.add(packageName);
-        }
-      }
-    } catch (e) {
-      // Ignore errors for individual constructor calls and continue
-    }
-    super.visitInstanceCreationExpression(node);
   }
 
   String? _extractPackageName(String uri) {
@@ -362,7 +472,6 @@ class SemanticImportVisitor extends RecursiveAstVisitor<void> {
       }
       return null;
     } catch (e) {
-      Logger.debug('Error extracting package name from URI "$uri": $e');
       return null;
     }
   }
