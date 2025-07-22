@@ -187,8 +187,7 @@ class UnusedCodeCleaner {
     Logger.info('Total unused items found: ${result.totalUnusedItems}');
 
     if (result.unusedAssets.isNotEmpty) {
-      Logger.section(
-          'Unused Assets (${result.unusedAssets.length} items)');
+      Logger.section('Unused Assets (${result.unusedAssets.length} items)');
       Logger.table([
         ['Name', 'Path', 'Size', 'Description'],
         ...result.unusedAssets.map((item) => [
@@ -215,8 +214,7 @@ class UnusedCodeCleaner {
     }
 
     if (result.unusedPackages.isNotEmpty) {
-      Logger.section(
-          'Unused Packages (${result.unusedPackages.length} items)');
+      Logger.section('Unused Packages (${result.unusedPackages.length} items)');
       Logger.table([
         ['Name', 'Path', 'Description'],
         ...result.unusedPackages.map((item) => [
@@ -228,8 +226,7 @@ class UnusedCodeCleaner {
     }
 
     if (result.unusedFiles.isNotEmpty) {
-      Logger.section(
-          'Unused Files (${result.unusedFiles.length} items)');
+      Logger.section('Unused Files (${result.unusedFiles.length} items)');
       Logger.table([
         ['Name', 'Path', 'Size', 'Description'],
         ...result.unusedFiles.map((item) => [
@@ -263,25 +260,20 @@ class UnusedCodeCleaner {
           'This seems EXTREMELY high and likely indicates an analysis error.');
       Logger.warning('');
       Logger.warning('🔍 Analysis Summary:');
-      Logger.warning(
-          '  • Total files scanned: ${result.totalScannedFiles}');
+      Logger.warning('  • Total files scanned: ${result.totalScannedFiles}');
       Logger.warning('  • Unused assets: ${result.unusedAssets.length}');
-      Logger.warning(
-          '  • Unused functions: ${result.unusedFunctions.length}');
-      Logger.warning(
-          '  • Unused packages: ${result.unusedPackages.length}');
+      Logger.warning('  • Unused functions: ${result.unusedFunctions.length}');
+      Logger.warning('  • Unused packages: ${result.unusedPackages.length}');
       Logger.warning('  • Unused files: ${result.unusedFiles.length}');
       Logger.warning('');
       Logger.warning('🔍 Possible causes:');
-      Logger.warning(
-          '  • Dynamic references not detected by static analysis');
+      Logger.warning('  • Dynamic references not detected by static analysis');
       Logger.warning(
           '  • Configuration files or build scripts using resources');
       Logger.warning('  • Generated code or external tool dependencies');
       Logger.warning('  • Plugin/platform-specific code not detected');
       Logger.warning('');
-      Logger.warning(
-          '⚠️  STRONG RECOMMENDATION: Use --dry-run mode first!');
+      Logger.warning('⚠️  STRONG RECOMMENDATION: Use --dry-run mode first!');
     }
   }
 

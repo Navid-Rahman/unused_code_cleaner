@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 env:
   PUB_ENVIRONMENT: bot.github
@@ -14,7 +14,7 @@ jobs:
   quality:
     name: 🔍 Code Quality
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: 📁 Checkout repository
         uses: actions/checkout@v4
@@ -86,7 +86,7 @@ jobs:
   flutter-example:
     name: 📱 Flutter Example
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: 📁 Checkout repository
         uses: actions/checkout@v4
@@ -133,7 +133,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [quality, test, flutter-example]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
+
     steps:
       - name: 📁 Checkout repository
         uses: actions/checkout@v4
@@ -177,14 +177,14 @@ jobs:
           release_name: Release v${{ steps.version-check.outputs.version }}
           body: |
             ## Changes in v${{ steps.version-check.outputs.version }}
-            
+
             See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
-            
+
             ### Installation
             ```bash
             dart pub global activate unused_code_cleaner
             ```
-            
+
             ### Usage
             ```bash
             unused_code_cleaner --help
@@ -203,7 +203,7 @@ jobs:
   security:
     name: 🔒 Security Scan
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: 📁 Checkout repository
         uses: actions/checkout@v4

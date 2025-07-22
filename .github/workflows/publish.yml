@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to publish (e.g., 1.8.0)'
+        description: "Version to publish (e.g., 1.8.0)"
         required: true
         type: string
 
@@ -15,7 +15,7 @@ jobs:
   publish:
     name: 🚀 Publish Package
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: 📁 Checkout repository
         uses: actions/checkout@v4
@@ -44,14 +44,14 @@ jobs:
         run: |
           PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | cut -d' ' -f2)
           INPUT_VERSION="${{ github.event.inputs.version }}"
-          
+
           if [ "$PUBSPEC_VERSION" != "$INPUT_VERSION" ]; then
             echo "❌ Version mismatch!"
             echo "   pubspec.yaml: $PUBSPEC_VERSION"
             echo "   Input version: $INPUT_VERSION"
             exit 1
           fi
-          
+
           echo "✅ Version verified: $PUBSPEC_VERSION"
 
       - name: 🚀 Publish to pub.dev
@@ -78,19 +78,19 @@ jobs:
           release_name: Release v${{ github.event.inputs.version }}
           body: |
             ## 🎉 Version ${{ github.event.inputs.version }}
-            
+
             Successfully published to [pub.dev](https://pub.dev/packages/unused_code_cleaner).
-            
+
             ### 📦 Installation
             ```bash
             dart pub global activate unused_code_cleaner
             ```
-            
+
             ### 🚀 Usage
             ```bash
             unused_code_cleaner --help
             ```
-            
+
             ### 📋 Changes
             See [CHANGELOG.md](CHANGELOG.md) for detailed changes in this release.
           draft: false
