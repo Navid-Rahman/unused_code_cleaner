@@ -1,0 +1,97 @@
+name: 📦 Publish to pub.dev
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.8.0)'
+        required: true
+        type: string
+
+env:
+  PUB_ENVIRONMENT: bot.github
+
+jobs:
+  publish:
+    name: 🚀 Publish Package
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📁 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🎯 Setup Dart SDK
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: 📦 Install dependencies
+        run: dart pub get
+
+      - name: ✨ Check formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: 🔬 Analyze code
+        run: dart analyze --fatal-infos
+
+      - name: 🧪 Run tests
+        run: dart test
+
+      - name: 📊 Validate package
+        run: dart pub publish --dry-run
+
+      - name: 🏷️ Verify version consistency
+        run: |
+          PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | cut -d' ' -f2)
+          INPUT_VERSION="${{ github.event.inputs.version }}"
+          
+          if [ "$PUBSPEC_VERSION" != "$INPUT_VERSION" ]; then
+            echo "❌ Version mismatch!"
+            echo "   pubspec.yaml: $PUBSPEC_VERSION"
+            echo "   Input version: $INPUT_VERSION"
+            exit 1
+          fi
+          
+          echo "✅ Version verified: $PUBSPEC_VERSION"
+
+      - name: 🚀 Publish to pub.dev
+        env:
+          PUB_TOKEN: ${{ secrets.PUB_TOKEN }}
+        run: |
+          echo "Publishing version ${{ github.event.inputs.version }} to pub.dev..."
+          dart pub token add https://pub.dev --env-var PUB_TOKEN
+          dart pub publish --force
+
+      - name: 🏷️ Create Git Tag
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a "v${{ github.event.inputs.version }}" -m "Release v${{ github.event.inputs.version }}"
+          git push origin "v${{ github.event.inputs.version }}"
+
+      - name: 🎉 Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          release_name: Release v${{ github.event.inputs.version }}
+          body: |
+            ## 🎉 Version ${{ github.event.inputs.version }}
+            
+            Successfully published to [pub.dev](https://pub.dev/packages/unused_code_cleaner).
+            
+            ### 📦 Installation
+            ```bash
+            dart pub global activate unused_code_cleaner
+            ```
+            
+            ### 🚀 Usage
+            ```bash
+            unused_code_cleaner --help
+            ```
+            
+            ### 📋 Changes
+            See [CHANGELOG.md](CHANGELOG.md) for detailed changes in this release.
+          draft: false
+          prerelease: false
