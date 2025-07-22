@@ -15,7 +15,7 @@
 
 #### **📂 Comprehensive Asset Discovery**
 
-- **ENHANCED**: Asset detection across multiple directory structures (assets, images, fonts, data, resources, static, files, lib/*)
+- **ENHANCED**: Asset detection across multiple directory structures (assets, images, fonts, data, resources, static, files, lib/\*)
 - **IMPROVED**: Asset file validation with 25+ supported extensions
 - **ADDED**: Configuration file exclusion (pubspec.yaml, analysis_options.yaml)
 - **IMPLEMENTED**: Package-aware asset loading patterns
@@ -37,7 +37,7 @@
 ### Technical Improvements:
 
 - **PERFORMANCE**: Proper AnalysisContextCollection initialization
-- **RELIABILITY**: Enhanced error handling and fallback mechanisms  
+- **RELIABILITY**: Enhanced error handling and fallback mechanisms
 - **ACCURACY**: Reduced false positives in asset detection
 - **DEBUGGING**: Comprehensive logging for asset analysis workflow
 
