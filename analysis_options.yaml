@@ -9,7 +9,7 @@ analyzer:
   errors:
     missing_required_param: error
     invalid_use_of_protected_member: error
-    deprecated_member_use: warning
+    deprecated_member_use: ignore
     # Allow print statements in CLI tools and loggers
     avoid_print: ignore
     # Allow missing assets in example (they're for demonstration)

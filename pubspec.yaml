@@ -1,23 +1,32 @@
 name: unused_code_cleaner
 description: "A comprehensive Dart package to identify and remove unused assets, functions, packages, and files with enhanced semantic analysis and detailed colored logging."
-version: 1.8.0
+version: 1.8.1
 homepage: https://github.com/Navid-Rahman/unused_code_cleaner
+repository: https://github.com/Navid-Rahman/unused_code_cleaner
+issue_tracker: https://github.com/Navid-Rahman/unused_code_cleaner/issues
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
 
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  windows:
+
 dependencies:
-  glob: ^2.1.3
-  path: ^1.9.0
-  yaml: ^3.1.3
-  analyzer: ^6.4.1
+  analyzer: ^6.11.0
   args: ^2.7.0
   cli_util: ^0.4.2
   colorize: ^3.0.0
+  glob: ^2.1.3
+  path: ^1.9.1
+  yaml: ^3.1.3
 
 dev_dependencies:
-  test: ^1.24.0
-  lints: ^3.0.0
+  test: ^1.26.3
+  lints: ^4.0.0
 
 executables:
   unused_code_cleaner: unused_code_cleaner

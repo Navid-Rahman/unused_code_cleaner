@@ -270,7 +270,7 @@ class AssetAnalyzer {
           final analysisContext =
               _analysisContextCollection.contextFor(file.path);
           final analysisSession = analysisContext.currentSession;
-          final parseResult = await analysisSession.getParsedUnit(file.path);
+          final parseResult = analysisSession.getParsedUnit(file.path);
 
           if (parseResult is ParsedUnitResult) {
             Logger.debug('Successfully parsed ${file.path}');
