@@ -76,6 +76,8 @@ void _printUsage(ArgParser parser) {
       '  unused_code_cleaner --assets --dry-run            # Preview asset cleanup');
   print(
       '  unused_code_cleaner --assets --exclude "assets/icons/**"  # Protect icons');
+  print(
+      '  unused_code_cleaner --enhanced --functions --dry-run     # Enhanced function analysis');
   print('');
   print('Options:');
   print(parser.usage);
@@ -86,4 +88,9 @@ void _printUsage(ArgParser parser) {
   print('  • Automatic backups created before deletion');
   print('  • Enhanced warnings for large-scale deletions');
   print('  • Multiple confirmation prompts for file deletion');
+  print('');
+  print('🚀 Enhanced Analysis:');
+  print('  • Use --enhanced for semantic AST-based analysis');
+  print('  • More accurate detection but slower execution');
+  print('  • Better handling of complex reference patterns');
 }

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
+import 'package:analyzer/dart/element/element.dart';
 
 import '../models/unused_item.dart';
 import '../utils/logger.dart';
@@ -8,19 +9,19 @@ import '../utils/pattern_matcher.dart';
 import '../models/cleanup_options.dart';
 import '../utils/ast_utils.dart';
 
+/// Enhanced function analyzer using semantic element analysis
 class FunctionAnalyzer {
   Future<List<UnusedItem>> analyze(
       String projectPath, List<File> dartFiles, CleanupOptions options) async {
     final unusedFunctions = <UnusedItem>[];
-    final allDeclarations =
-        <String, FunctionInfo>{}; // Map name to FunctionInfo
-    final allReferences = <String>{}; // Store referenced function names
+    final tracker = ElementUsageTracker();
 
-    Logger.info('🔍 Starting function analysis (AST-based)...');
+    Logger.info('🔍 Starting enhanced function analysis (semantic-based)...');
 
     AstUtils.initializeAnalysisContext(projectPath);
 
     try {
+      // First pass: collect all declarations and usages
       for (final file in dartFiles) {
         if (PatternMatcher.isExcluded(file.path, options.excludePatterns)) {
           continue;
@@ -29,235 +30,263 @@ class FunctionAnalyzer {
         final resolvedUnit = await AstUtils.getResolvedUnit(file.path);
         if (resolvedUnit == null) {
           Logger.debug(
-              'Skipping AST analysis for ${file.path} due to resolution errors.');
+              'Skipping analysis for ${file.path} due to resolution errors.');
           continue;
         }
 
-        final visitor = FunctionDeclarationVisitor(file.path);
+        final visitor = SemanticElementVisitor(tracker, file.path);
         resolvedUnit.unit.accept(visitor);
 
-        for (final decl in visitor.declarations) {
-          allDeclarations[decl.name] = decl;
-        }
-
-        // Collect references from this file
-        final referenceVisitor = ReferenceVisitor();
-        resolvedUnit.unit.accept(referenceVisitor);
-        allReferences.addAll(referenceVisitor.references);
+        // Also collect Flutter-specific patterns
+        final flutterVisitor = FlutterAwareVisitor(tracker);
+        resolvedUnit.unit.accept(flutterVisitor);
       }
 
-      // Identify unused functions
-      for (final entry in allDeclarations.entries) {
-        final functionName = entry.key;
-        final functionInfo = entry.value;
-
-        // A function is considered used if its name is referenced anywhere
-        // or if it's a main function, a public API, or a framework method.
-        if (!allReferences.contains(functionName) &&
-            !_isMainFunction(functionInfo) &&
-            !_isPublicApi(functionInfo) &&
-            !_isFrameworkMethod(functionInfo)) {
-          unusedFunctions.add(UnusedItem(
-            name: functionInfo.name,
-            path: functionInfo.filePath,
-            type: UnusedItemType.function,
-            lineNumber: functionInfo.lineNumber,
-            description: 'Unused ${functionInfo.type} function/method',
-          ));
+      // Second pass: identify unused functions
+      for (final declaredElement in tracker.declaredElements) {
+        if (_isFunctionElement(declaredElement) &&
+            !tracker.isElementUsed(declaredElement) &&
+            !_isExcludedFromAnalysis(declaredElement)) {
+          final location = _getElementLocation(declaredElement);
+          if (location != null) {
+            unusedFunctions.add(UnusedItem(
+              name: declaredElement.displayName,
+              path: location.filePath,
+              type: UnusedItemType.function,
+              lineNumber: location.lineNumber,
+              description:
+                  'Unused ${_getElementTypeDescription(declaredElement)}',
+            ));
+          }
         }
       }
 
       Logger.info(
-          'Function analysis complete: ${unusedFunctions.length} unused functions found');
+          'Enhanced function analysis complete: ${unusedFunctions.length} unused functions found');
       return unusedFunctions;
     } catch (e) {
-      Logger.error('Function analysis failed: $e');
+      Logger.error('Enhanced function analysis failed: $e');
       return [];
     } finally {
       AstUtils.disposeAnalysisContext();
     }
   }
 
-  bool _isMainFunction(FunctionInfo functionInfo) {
-    return functionInfo.name == 'main' && functionInfo.type == 'function';
+  bool _isFunctionElement(Element element) {
+    return element is FunctionElement ||
+        element is MethodElement ||
+        element is ConstructorElement ||
+        element is PropertyAccessorElement && element.isSetter == false;
   }
 
-  bool _isPublicApi(FunctionInfo functionInfo) {
-    // Consider functions/methods that are not private (don't start with '_')
-    // Be conservative - don't mark public methods as unused
-    return !functionInfo.name.startsWith('_');
+  bool _isExcludedFromAnalysis(Element element) {
+    final name = element.displayName;
+
+    // Main function
+    if (name == 'main' && element is FunctionElement) {
+      return true;
+    }
+
+    // Public API (conservative approach)
+    if (!name.startsWith('_')) {
+      return true;
+    }
+
+    // Flutter framework methods
+    if (_isFlutterFrameworkMethod(element)) {
+      return true;
+    }
+
+    // Test methods
+    if (_isTestMethod(element)) {
+      return true;
+    }
+
+    // Generated code patterns
+    if (_isGeneratedCode(element)) {
+      return true;
+    }
+
+    // Override methods
+    if (_isOverrideMethod(element)) {
+      return true;
+    }
+
+    return false;
   }
 
-  bool _isFrameworkMethod(FunctionInfo functionInfo) {
-    final specialPatterns = [
-      r'^main$',
-      r'^_.*Test$',
-      r'^test.*',
-      r'^setUp$',
-      r'^tearDown$',
-      r'^build$',
-      r'^initState$',
-      r'^dispose$',
-      r'^didChangeDependencies$',
-      r'^didUpdateWidget$',
-      r'^deactivate$',
-      r'^debugFillProperties$',
-      r'^reassemble$',
-      r'^noSuchMethod$',
-      r'^call$',
-      r'^copyWith$',
-      r'^fromJson$',
-      r'^toJson$',
-      r'^fromMap$',
-      r'^toMap$',
-      r'^when$',
-      r'^map$',
-      r'^maybeMap$',
-      r'^maybeWhen$',
-      r'^toString$',
-      r'^hashCode$',
-      r'^operator==$',
-      r'^on[A-Z].*', // Callbacks like onPressed
-    ];
+  bool _isFlutterFrameworkMethod(Element element) {
+    if (element is! MethodElement) return false;
 
-    return specialPatterns
-            .any((pattern) => RegExp(pattern).hasMatch(functionInfo.name)) ||
-        functionInfo.name.endsWith('Provider') ||
-        functionInfo.name.contains('Generated') ||
-        functionInfo.name.startsWith('_'); // Private methods - be conservative
+    final methodName = element.name;
+    final flutterMethods = {
+      'build',
+      'initState',
+      'dispose',
+      'didChangeDependencies',
+      'didUpdateWidget',
+      'deactivate',
+      'reassemble',
+      'debugFillProperties',
+      'createState',
+      'createElement',
+      'canUpdate'
+    };
+
+    if (flutterMethods.contains(methodName)) {
+      return true;
+    }
+
+    // Check if it's in a Flutter widget/state class
+    final enclosingClass = element.enclosingElement3;
+    if (enclosingClass is ClassElement) {
+      final className = enclosingClass.name;
+      if (className.endsWith('Widget') || className.endsWith('State')) {
+        return true;
+      }
+
+      // Check supertype chain for Flutter classes
+      return _hasFlutterSupertype(enclosingClass);
+    }
+
+    return false;
+  }
+
+  bool _hasFlutterSupertype(ClassElement classElement) {
+    final supertype = classElement.supertype;
+    if (supertype == null) return false;
+
+    final supertypeName = supertype.element.name;
+    final flutterBaseClasses = {
+      'Widget',
+      'StatelessWidget',
+      'StatefulWidget',
+      'State',
+      'InheritedWidget',
+      'RenderObject',
+      'RenderBox'
+    };
+
+    if (flutterBaseClasses.contains(supertypeName)) {
+      return true;
+    }
+
+    // Check interfaces
+    for (final interface in classElement.interfaces) {
+      if (flutterBaseClasses.contains(interface.element.name)) {
+        return true;
+      }
+    }
+
+    // Recursively check supertype
+    if (supertype.element is ClassElement) {
+      return _hasFlutterSupertype(supertype.element as ClassElement);
+    }
+    return false;
+  }
+
+  bool _isTestMethod(Element element) {
+    final name = element.displayName;
+    return name.startsWith('test') ||
+        name == 'setUp' ||
+        name == 'tearDown' ||
+        name.endsWith('Test');
+  }
+
+  bool _isGeneratedCode(Element element) {
+    final source = element.source;
+    if (source == null) return false;
+
+    final filePath = source.fullName;
+    return filePath.endsWith('.g.dart') ||
+        filePath.endsWith('.freezed.dart') ||
+        filePath.endsWith('.gr.dart') ||
+        filePath.contains('.generated.');
+  }
+
+  bool _isOverrideMethod(Element element) {
+    if (element is! MethodElement) return false;
+
+    // Check if method has @override annotation
+    return element.metadata
+        .any((annotation) => annotation.element?.displayName == 'override');
+  }
+
+  String _getElementTypeDescription(Element element) {
+    if (element is FunctionElement) return 'function';
+    if (element is MethodElement) return 'method';
+    if (element is ConstructorElement) return 'constructor';
+    if (element is PropertyAccessorElement) return 'getter';
+    return 'declaration';
+  }
+
+  ElementLocation? _getElementLocation(Element element) {
+    final source = element.source;
+    if (source == null) return null;
+
+    final nameOffset = element.nameOffset;
+    if (nameOffset == -1) return null;
+
+    // We would need line info to get the actual line number
+    // For now, we'll use the offset as a proxy
+    return ElementLocation(
+      filePath: source.fullName,
+      lineNumber: nameOffset,
+    );
   }
 }
 
-class FunctionInfo {
-  final String name;
-  final String filePath;
-  final int lineNumber;
-  final String type;
+/// Flutter-aware visitor for special framework patterns
+class FlutterAwareVisitor extends RecursiveAstVisitor<void> {
+  final ElementUsageTracker tracker;
 
-  FunctionInfo({
-    required this.name,
-    required this.filePath,
-    required this.lineNumber,
-    required this.type,
-  });
-}
-
-class FunctionDeclarationVisitor extends RecursiveAstVisitor<void> {
-  final List<FunctionInfo> declarations = [];
-  final String currentFilePath;
-
-  FunctionDeclarationVisitor(this.currentFilePath);
-
-  @override
-  void visitFunctionDeclaration(FunctionDeclaration node) {
-    declarations.add(FunctionInfo(
-      name: node.name.lexeme,
-      filePath: currentFilePath,
-      lineNumber: node.name.offset,
-      type: 'function',
-    ));
-    super.visitFunctionDeclaration(node);
-  }
+  FlutterAwareVisitor(this.tracker);
 
   @override
   void visitMethodDeclaration(MethodDeclaration node) {
-    declarations.add(FunctionInfo(
-      name: node.name.lexeme,
-      filePath: currentFilePath,
-      lineNumber: node.name.offset,
-      type: 'method',
-    ));
+    // Handle Flutter State lifecycle methods specially
+    final methodName = node.name.lexeme;
+    if (_isStateLifecycleMethod(methodName)) {
+      final element = node.declaredElement;
+      if (element != null) {
+        // Mark as used if it's a framework method
+        tracker.recordUsedElement(element);
+      }
+    }
     super.visitMethodDeclaration(node);
   }
 
   @override
-  void visitConstructorDeclaration(ConstructorDeclaration node) {
-    final className = (node.parent as ClassDeclaration).name.lexeme;
-    final constructorName = node.name?.lexeme;
-    final name =
-        constructorName != null ? '$className.$constructorName' : className;
-
-    declarations.add(FunctionInfo(
-      name: name,
-      filePath: currentFilePath,
-      lineNumber: node.offset,
-      type: 'constructor',
-    ));
-    super.visitConstructorDeclaration(node);
-  }
-
-  @override
-  void visitVariableDeclaration(VariableDeclaration node) {
-    // Handle function variables (e.g., final myFunc = () => {...})
-    if (node.initializer is FunctionExpression) {
-      declarations.add(FunctionInfo(
-        name: node.name.lexeme,
-        filePath: currentFilePath,
-        lineNumber: node.name.offset,
-        type: 'function variable',
-      ));
-    }
-    super.visitVariableDeclaration(node);
-  }
-}
-
-class ReferenceVisitor extends RecursiveAstVisitor<void> {
-  final Set<String> references = {};
-
-  @override
-  void visitSimpleIdentifier(SimpleIdentifier node) {
-    // Only add if it's not part of a declaration
-    if (node.parent is! FunctionDeclaration &&
-        node.parent is! MethodDeclaration &&
-        node.parent is! ConstructorDeclaration &&
-        node.parent is! VariableDeclaration) {
-      references.add(node.name);
-    }
-    super.visitSimpleIdentifier(node);
-  }
-
-  @override
-  void visitMethodInvocation(MethodInvocation node) {
-    references.add(node.methodName.name);
-    super.visitMethodInvocation(node);
-  }
-
-  @override
-  void visitFunctionExpressionInvocation(FunctionExpressionInvocation node) {
-    if (node.function is SimpleIdentifier) {
-      references.add((node.function as SimpleIdentifier).name);
-    }
-    super.visitFunctionExpressionInvocation(node);
-  }
-
-  @override
-  void visitPrefixedIdentifier(PrefixedIdentifier node) {
-    references.add(node.identifier.name);
-    super.visitPrefixedIdentifier(node);
-  }
-
-  @override
-  void visitPropertyAccess(PropertyAccess node) {
-    references.add(node.propertyName.name);
-    super.visitPropertyAccess(node);
-  }
-
-  @override
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
-    final typeName = node.constructorName.type.name2.lexeme;
-    references.add(typeName);
+    // Handle widget instantiation
+    final element = node.constructorName.staticElement;
+    if (element != null) {
+      tracker.recordUsedElement(element);
 
-    // Add constructor name if specified
-    final constructorName = node.constructorName.name?.name;
-    if (constructorName != null) {
-      references.add('$typeName.$constructorName');
+      // Also mark the class as used
+      final classElement = element.enclosingElement3;
+      tracker.recordUsedElement(classElement);
     }
     super.visitInstanceCreationExpression(node);
   }
 
-  @override
-  void visitNamedExpression(NamedExpression node) {
-    references.add(node.name.label.name);
-    super.visitNamedExpression(node);
+  bool _isStateLifecycleMethod(String methodName) {
+    const lifecycleMethods = {
+      'initState',
+      'build',
+      'dispose',
+      'didChangeDependencies',
+      'didUpdateWidget',
+      'deactivate',
+      'reassemble'
+    };
+    return lifecycleMethods.contains(methodName);
   }
+}
+
+class ElementLocation {
+  final String filePath;
+  final int lineNumber;
+
+  ElementLocation({required this.filePath, required this.lineNumber});
 }
