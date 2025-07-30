@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.8.2 - ANALYZER DEPENDENCY COMPATIBILITY EXPANSION
+
+**🔧 ENHANCED DEPENDENCY COMPATIBILITY**
+
+### Compatibility Improvements:
+
+#### **📦 Analyzer Dependency Range Expansion**
+
+- **Expanded Analyzer Compatibility**: Updated analyzer dependency from `^6.11.0` to `>=6.11.0 <8.0.0`
+- **Support for Analyzer 7.x**: Now supports analyzer versions 6.x and 7.x for better ecosystem compatibility
+- **Future-Proof Versioning**: Following semantic versioning patterns to support wider range of analyzer versions
+- **Resolves Version Conflicts**: Fixes dependency conflicts when projects use newer analyzer versions (e.g., ^7.7.0)
+
+#### **🛠️ Benefits**
+
+- **Better Project Compatibility**: Can now be used in projects requiring analyzer 7.x
+- **Reduced Version Conflicts**: Eliminates pub resolution failures when analyzer versions conflict
+- **Future Compatibility**: Prepared for upcoming analyzer releases in the 7.x series
+- **Ecosystem Alignment**: Follows best practices similar to other packages supporting wide version ranges
+
 ## 1.8.1 - PUB POINTS OPTIMIZATION & COMPATIBILITY IMPROVEMENTS
 
 **🚀 ENHANCED PUB.DEV SCORING & DEPENDENCY MODERNIZATION**
