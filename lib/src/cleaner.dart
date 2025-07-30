@@ -46,7 +46,7 @@ class UnusedCodeCleaner {
     final stopwatch = Stopwatch()..start();
 
     Logger.setVerbose(options.verbose);
-    Logger.header('Unused Code Cleaner', '1.7.0');
+    Logger.header('Unused Code Cleaner', '1.8.1');
 
     // Initialize analyzers with project path
     _assetAnalyzer = AssetAnalyzer();

@@ -77,7 +77,7 @@ void _printUsage(ArgParser parser) {
   print(
       '  unused_code_cleaner --assets --exclude "assets/icons/**"  # Protect icons');
   print(
-      '  unused_code_cleaner --enhanced --functions --dry-run     # Enhanced function analysis');
+      '  unused_code_cleaner --functions --dry-run         # Function analysis');
   print('');
   print('Options:');
   print(parser.usage);
@@ -89,8 +89,8 @@ void _printUsage(ArgParser parser) {
   print('  • Enhanced warnings for large-scale deletions');
   print('  • Multiple confirmation prompts for file deletion');
   print('');
-  print('🚀 Enhanced Analysis:');
-  print('  • Use --enhanced for semantic AST-based analysis');
-  print('  • More accurate detection but slower execution');
+  print('🚀 Advanced Analysis:');
+  print('  • Semantic AST-based analysis is enabled by default');
+  print('  • More accurate detection with Flutter-aware patterns');
   print('  • Better handling of complex reference patterns');
 }

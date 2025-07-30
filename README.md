@@ -1,28 +1,29 @@
 # Unused Code Cleaner
 
 [![Pub Version](https://img.shields.io/pub/v/unused_code_cleaner)](https://pub.dev/packages/unused_code_cleaner)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/yourusername/unused_code_cleaner/pulls)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Navid-Rahman/unused_code_cleaner/pulls)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> **🎯 LATEST UPDATE - v1.5.0**  
-> **COMPREHENSIVE RESULT OVERVIEW & ENHANCED LOGGING**  
-> Revolutionary result display system with project health assessment, comprehensive analysis summary, and actionable improvement recommendations.  
-> **Now provides complete project overview with health scoring and performance metrics**
+> **🎯 LATEST UPDATE - v1.8.1**  
+> **PUB POINTS OPTIMIZATION & LOGGING SYSTEM OVERHAUL**  
+> Complete logging system redesign with clean, professional output. Enhanced pub.dev scoring with modernized dependencies and improved compatibility.  
+> **Now features clean structured sections with professional visual hierarchy**
 
 A powerful and **SAFE** Dart CLI tool to identify and remove unused assets, functions, packages, and files from your Flutter and Dart projects, with comprehensive safety features and beautiful colored logging.
 
 ## 🛡️ ENHANCED SAFETY FEATURES
 
-**LATEST IN v1.4.0 - SEMANTIC ANALYSIS ENGINE:**
+**LATEST IN v1.8.1 - PROFESSIONAL LOGGING & MODERNIZATION:**
 
-1. **Element-Based Tracking**: Uses Dart analyzer's Element system instead of string matching
-2. **Flutter-Aware Detection**: Smart recognition of Flutter lifecycle methods and widgets
-3. **Cross-File Dependencies**: Proper resolution of imports, exports, and library boundaries
-4. **Enhanced Asset Detection**: Variable value tracking and fuzzy path matching
-5. **Semantic Function Analysis**: Element-based tracking with framework method protection
-6. **Advanced Package Analysis**: Sophisticated import tracking with conditional import handling
-7. **Comprehensive Safety**: Multiple validation layers and intelligent exclusion patterns
-8. **90% Accuracy Improvement**: Dramatically reduced false positives compared to string-based analysis
+1. **Clean Output System**: Professional structured sections with clean visual hierarchy
+2. **Enhanced Analysis**: Advanced semantic analysis using Dart analyzer's Element system
+3. **Flutter-Aware Detection**: Smart recognition of Flutter lifecycle methods and widgets
+4. **Cross-File Dependencies**: Proper resolution of imports, exports, and library boundaries
+5. **Enhanced Asset Detection**: Variable value tracking and fuzzy path matching
+6. **Semantic Function Analysis**: Element-based tracking with framework method protection
+7. **Advanced Package Analysis**: Sophisticated import tracking with conditional import handling
+8. **Comprehensive Safety**: Multiple validation layers and intelligent exclusion patterns
+9. **Modernized Dependencies**: Updated to latest analyzer and improved pub.dev compatibility
 
 **ALWAYS FOLLOW THESE SAFETY STEPS:**
 
@@ -70,19 +71,19 @@ Or add it to your `dev_dependencies` in `pubspec.yaml`:
 
 ```yaml
 dev_dependencies:
-  unused_code_cleaner: ^1.3.1
+  unused_code_cleaner: ^1.8.1
 ```
 
-## 🚀 New Enhanced Analysis Mode
+## 🚀 Advanced Analysis Features
 
-**Enhanced Semantic Analysis** provides significantly more accurate detection by using Dart's semantic model:
+**Semantic Analysis** provides significantly more accurate detection by using Dart's semantic model:
 
 ```bash
-# Enhanced semantic analysis is now enabled by default
+# Advanced semantic analysis is enabled by default
 dart run unused_code_cleaner --dry-run --all --verbose
 ```
 
-**Enhanced Features:**
+**Advanced Features:**
 
 - 🧠 **Element-Based Tracking**: Uses semantic elements instead of name matching
 - 🔍 **Cross-File Analysis**: Tracks dependencies across compilation units
@@ -130,7 +131,7 @@ dart run unused_code_cleaner --dry-run --all --verbose
 # 1. ALWAYS start with dry-run to preview changes
 dart run unused_code_cleaner --dry-run --all --verbose
 
-# 2. Enhanced semantic analysis is now enabled by default
+# 2. Advanced semantic analysis is enabled by default
 dart run unused_code_cleaner --dry-run --all --verbose
 
 # 3. Review the output carefully - check for any assets you need
@@ -155,16 +156,16 @@ Remove all unused items (interactive mode):
 dart run unused_code_cleaner --all
 ```
 
-**Enhanced Analysis Examples:**
+**Analysis Examples:**
 
 ```bash
-# Enhanced semantic analysis (more accurate)
+# Advanced semantic analysis with dry-run
 dart run unused_code_cleaner --functions --dry-run
 
-# Enhanced asset analysis with variable tracking
+# Asset analysis with variable tracking
 dart run unused_code_cleaner --assets --verbose --dry-run
 
-# Enhanced package analysis with dependency chain tracking
+# Package analysis with dependency chain tracking
 dart run unused_code_cleaner --packages --dry-run
 ```
 
@@ -232,53 +233,10 @@ void main() async {
 | `--interactive` | Prompts for confirmation before removing items (default: true)           |
 | `--exclude`     | Specifies patterns to exclude (e.g., \*_/_.g.dart)                       |
 | `--path`        | Specifies the project directory to analyze (default: current directory)  |
+| `--dry-run`     | Preview changes without executing them (RECOMMENDED)                     |
+| `--no-backup`   | Skip creating backups before deletion                                    |
 
-## 🛠 Configuration File
-
-Create an `unused_code_cleaner.yaml` file in your project root for advanced configuration:
-
-````yaml
-```yaml
-analysis:
-  verbose: true
-  interactive: true
-  exclude_patterns:
-    - "**/*.g.dart"
-    - "**/*.freezed.dart"
-    - "**/generated/**"
-  include_paths:
-    - lib/
-    - test/
-
-assets:
-  enabled: true
-  directories:
-    - assets/
-    - images/
-    - fonts/
-    - data/
-
-functions:
-  enabled: true
-  preserve:
-    - main
-    - build
-    - initState
-
-packages:
-  enabled: true
-  preserve:
-    - flutter
-    - flutter_test
-
-files:
-  enabled: true
-  preserve:
-    - lib/main.dart
-    - test/**
-````
-
-## 💡 Example Output
+## Example Output
 
 ```
 🔍 UNUSED CODE CLEANER - ANALYSIS STARTED
@@ -336,9 +294,14 @@ Tests confirmed accurate detection of unused assets, functions, packages, and fi
 - ✅ Pure Dart CLI tool (no Flutter SDK dependency)
 - ✅ Pattern-based exclusion system
 - ✅ Interactive and non-interactive modes
+- ✅ Enhanced semantic analysis with element-based tracking
+- ✅ Project health scoring and comprehensive result overview
+- ✅ Professional logging system with clean output
+- ✅ Multi-platform support and modern dependency management
 
 ### 📋 Upcoming Features:
 
+- ❌ Configuration file support (`unused_code_cleaner.yaml`)
 - ❌ Support for additional file types (e.g., TypeScript, Kotlin)
 - ❌ Generate detailed HTML/PDF reports
 - ❌ VS Code extension for real-time analysis
