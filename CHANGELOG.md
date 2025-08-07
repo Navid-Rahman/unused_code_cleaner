@@ -37,9 +37,11 @@
 - **Increased Confidence**: Friendly presentation reduces fear of trying the tool
 
 ### Breaking Changes:
+
 - None - All functionality remains exactly the same
 
 ### Migration Notes:
+
 - No migration needed - this is purely a documentation and UX improvement
 
 ## 1.8.2 - ANALYZER DEPENDENCY COMPATIBILITY EXPANSION
