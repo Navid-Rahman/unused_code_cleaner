@@ -3,13 +3,10 @@ description: "Automatically find and safely remove unused assets, functions, pac
 version: 1.8.3
 topics:
   - flutter
-  - dart
   - optimization
   - cleanup
   - assets
   - performance
-  - ci-cd
-  - maintenance
 homepage: https://github.com/Navid-Rahman/unused_code_cleaner
 repository: https://github.com/Navid-Rahman/unused_code_cleaner
 issue_tracker: https://github.com/Navid-Rahman/unused_code_cleaner/issues
