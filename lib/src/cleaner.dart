@@ -7,10 +7,10 @@ import 'models/cleanup_options.dart';
 import 'utils/logger.dart';
 import 'utils/file_utils.dart';
 import 'utils/safe_removal.dart';
-import 'analyzers/asset_analyzer.dart';
-import 'analyzers/function_analyzer.dart';
-import 'analyzers/package_analyzer.dart';
-import 'analyzers/file_analyzer.dart';
+import 'analyzers/enhanced_asset_analyzer.dart';
+import 'analyzers/enhanced_function_analyzer.dart';
+import 'analyzers/enhanced_package_analyzer.dart';
+import 'analyzers/enhanced_file_analyzer.dart';
 import 'exceptions.dart';
 
 /// Main orchestrator class for unused code analysis and cleanup operations.
@@ -23,10 +23,10 @@ import 'exceptions.dart';
 ///
 /// Provides both analysis-only and interactive cleanup capabilities.
 class UnusedCodeCleaner {
-  AssetAnalyzer? _assetAnalyzer;
-  FunctionAnalyzer? _functionAnalyzer;
-  PackageAnalyzer? _packageAnalyzer;
-  FileAnalyzer? _fileAnalyzer;
+  EnhancedAssetAnalyzer? _assetAnalyzer;
+  EnhancedFunctionAnalyzer? _functionAnalyzer;
+  EnhancedPackageAnalyzer? _packageAnalyzer;
+  EnhancedFileAnalyzer? _fileAnalyzer;
 
   /// Initializes all analyzer components.
   UnusedCodeCleaner();
@@ -48,11 +48,11 @@ class UnusedCodeCleaner {
     Logger.setVerbose(options.verbose);
     Logger.header('Unused Code Cleaner', '1.8.1');
 
-    // Initialize analyzers with project path
-    _assetAnalyzer = AssetAnalyzer();
-    _functionAnalyzer = FunctionAnalyzer();
-    _packageAnalyzer = PackageAnalyzer(projectPath);
-    _fileAnalyzer = FileAnalyzer(projectPath);
+    // Initialize enhanced analyzers with project path
+    _assetAnalyzer = EnhancedAssetAnalyzer();
+    _functionAnalyzer = EnhancedFunctionAnalyzer();
+    _packageAnalyzer = EnhancedPackageAnalyzer();
+    _fileAnalyzer = EnhancedFileAnalyzer();
 
     try {
       // Validate project structure
@@ -133,9 +133,10 @@ class UnusedCodeCleaner {
           'pubspec.yaml not found in $projectPath');
     }
 
-    // Critical safety check: prevent analyzing ourselves
+    // Critical safety check: prevent analyzing ourselves (but allow example)
     final pubspecContent = await pubspecFile.readAsString();
-    if (pubspecContent.contains('name: unused_code_cleaner')) {
+    if (pubspecContent.contains('name: unused_code_cleaner') &&
+        !pubspecContent.contains('name: unused_code_cleaner_example')) {
       throw ProjectValidationException(
           'Cannot analyze unused_code_cleaner package itself for safety reasons');
     }
