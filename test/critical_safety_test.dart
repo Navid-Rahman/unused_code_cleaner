@@ -53,7 +53,7 @@ environment:
     test('core safety mechanisms work', () async {
       // Test that the cleaner has basic safety protections
       final cleaner = UnusedCodeCleaner();
-      
+
       // This should pass - testing that safety mechanisms are in place
       expect(cleaner, isNotNull);
       expect(() => CleanupOptions(), returnsNormally);
@@ -63,7 +63,7 @@ environment:
       // Test basic safety validations exist
       final cleaner = UnusedCodeCleaner();
       final options = CleanupOptions(dryRun: true, verbose: true);
-      
+
       // This should work safely with dry run
       expect(options.dryRun, isTrue);
       expect(cleaner, isNotNull);

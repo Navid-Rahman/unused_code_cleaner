@@ -225,8 +225,8 @@ environment:
 
       // Since PatternMatcher is no longer used, we test that the system
       // has safety mechanisms in place
-      expect(testPaths.isNotEmpty, isTrue, 
-        reason: 'Safety test paths should be defined');
+      expect(testPaths.isNotEmpty, isTrue,
+          reason: 'Safety test paths should be defined');
     });
 
     test('should allow normal project files', () {
@@ -240,7 +240,7 @@ environment:
 
       // Test that we have normal file paths defined
       expect(testPaths.isNotEmpty, isTrue,
-        reason: 'Normal project file paths should be defined');
+          reason: 'Normal project file paths should be defined');
     });
   });
 }
