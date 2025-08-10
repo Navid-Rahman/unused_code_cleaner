@@ -1,18 +1,18 @@
 import 'package:test/test.dart';
-import 'package:unused_code_cleaner/src/analyzers/asset_analyzer.dart';
+import 'package:unused_code_cleaner/src/analyzers/enhanced_asset_analyzer.dart';
 import 'package:unused_code_cleaner/src/models/cleanup_options.dart';
 import 'dart:io';
 
-/// Comprehensive test suite for the fixed AssetAnalyzer
+/// Comprehensive test suite for the Enhanced AssetAnalyzer
 /// Tests the critical safety fixes that prevent mass deletion of assets
 void main() {
-  group('AssetAnalyzer Safety Tests', () {
+  group('Enhanced AssetAnalyzer Safety Tests', () {
     late Directory tempDir;
-    late AssetAnalyzer analyzer;
+    late EnhancedAssetAnalyzer analyzer;
 
     setUp(() async {
       tempDir = await Directory.systemTemp.createTemp('asset_analyzer_test');
-      analyzer = AssetAnalyzer();
+      analyzer = EnhancedAssetAnalyzer();
     });
 
     tearDown(() async {

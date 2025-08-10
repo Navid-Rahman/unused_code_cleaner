@@ -117,8 +117,9 @@ class EnhancedFunctionAnalyzer {
     if (funcDef.name == 'main') return true;
 
     // Test functions
-    if (funcDef.name.startsWith('test') && funcDef.filePath.contains('test'))
+    if (funcDef.name.startsWith('test') && funcDef.filePath.contains('test')) {
       return true;
+    }
 
     // Widget build methods
     if (funcDef.name == 'build' && funcDef.isMethod) return true;

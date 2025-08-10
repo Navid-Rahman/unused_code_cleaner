@@ -1,6 +1,6 @@
 name: unused_code_cleaner
 description: "Automatically find and safely remove unused assets, functions, packages, and files from Flutter/Dart projects. Reduce bundle size and improve performance with one command."
-version: 1.8.3
+version: 1.9.0
 topics:
   - flutter
   - optimization

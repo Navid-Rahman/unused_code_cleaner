@@ -50,8 +50,8 @@ class Logger {
   /// Main section header with proper spacing
   static void section(String title) {
     print('');
-    print(_colorize('📋 ${title.toUpperCase()}', '$_bold$_cyan'));
-    print(_colorize('${'─' * (title.length + 4)}', _cyan));
+    print(_colorize('📋 ${title.toUpperCase()}', _bold + _cyan));
+    print(_colorize('─' * (title.length + 4), _cyan));
   }
 
   /// Subsection header
@@ -121,15 +121,15 @@ class Logger {
   /// Results summary table header
   static void resultsHeader() {
     print('');
-    print(_colorize('📊 ANALYSIS RESULTS', '$_bold$_cyan'));
-    print(_colorize('${'═' * 50}', _cyan));
+    print(_colorize('📊 ANALYSIS RESULTS', _bold + _cyan));
+    print(_colorize('═' * 50, _cyan));
     print('');
   }
 
   /// Results summary footer
   static void resultsFooter() {
     print('');
-    print(_colorize('${'═' * 50}', _cyan));
+    print(_colorize('═' * 50, _cyan));
   }
 
   /// Performance summary
@@ -177,8 +177,8 @@ class Logger {
     if (recommendations.isEmpty) return;
 
     print('');
-    print(_colorize('💡 RECOMMENDATIONS', '$_bold$_magenta'));
-    print(_colorize('${'─' * 16}', _magenta));
+    print(_colorize('💡 RECOMMENDATIONS', _bold + _magenta));
+    print(_colorize('─' * 16, _magenta));
 
     for (final rec in recommendations) {
       print(_colorize('• $rec', _white));

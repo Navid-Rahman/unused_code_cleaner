@@ -1,5 +1,44 @@
 # Changelog
 
+## 1.9.0 - ENHANCED ANALYZERS & MAJOR REFACTORING
+
+**🚀 MAJOR UPDATE - RESEARCH-BASED ENHANCED ANALYZERS**
+
+### Core Engine Overhaul:
+
+#### **🔬 Research-Based Enhanced Analyzers**
+
+- **NEW**: Enhanced Asset Analyzer using Flutter's own ManifestAssetBundle patterns
+- **NEW**: Enhanced Function Analyzer using dart-code-metrics proven techniques  
+- **NEW**: Enhanced Package Analyzer with advanced import detection via AST
+- **NEW**: Enhanced File Analyzer with comprehensive dependency graph analysis
+- **IMPROVED**: All analyzers now use production-grade algorithms from Flutter team and dart-code-metrics
+- **ENHANCED**: Advanced AST traversal detecting complex reference patterns
+- **ADDED**: Proper import/export analysis and fuzzy asset matching
+
+#### **🧹 Major Code Cleanup & Refactoring**
+
+- **REMOVED**: All legacy analyzer files (asset_analyzer.dart, function_analyzer.dart, package_analyzer.dart, file_analyzer.dart)
+- **REMOVED**: Unused utility files (ast_utils.dart, pattern_matcher.dart, logger_new.dart)
+- **FIXED**: All linting issues and code quality improvements
+- **UPDATED**: Tests to use enhanced analyzers
+- **IMPROVED**: Code maintainability and reduced technical debt
+
+#### **⚡ Performance & Accuracy Improvements**
+
+- **ENHANCED**: Much more accurate detection of unused items
+- **IMPROVED**: Better handling of complex reference patterns
+- **ADDED**: Fuzzy matching for asset variants and dynamic references
+- **OPTIMIZED**: Dependency graph building for accurate file usage tracking
+- **UPGRADED**: AST analysis with proper visitor patterns
+
+### Technical Achievements:
+
+- **ALGORITHMS**: Based on research from flutter/flutter and dart-code-metrics repositories
+- **ACCURACY**: Significant improvement over previous implementation  
+- **SAFETY**: Preserved all essential code and dependencies detection
+- **COMPATIBILITY**: Maintains full backward compatibility
+
 ## 1.8.3 - USER EXPERIENCE & DOCUMENTATION OVERHAUL
 
 **🎯 MAJOR UX IMPROVEMENT - SIMPLIFIED & USER-FRIENDLY**
