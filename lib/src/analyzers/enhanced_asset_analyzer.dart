@@ -347,8 +347,7 @@ class _AssetUsageVisitor extends RecursiveAstVisitor<void> {
 
   bool _isAssetMethod(MethodInvocation node) {
     final methodName = node.methodName.name;
-    final targetType =
-        node.target?.staticType?.getDisplayString();
+    final targetType = node.target?.staticType?.getDisplayString();
 
     return (methodName == 'asset' && targetType == 'Image') ||
         (methodName == 'loadString' && targetType == 'rootBundle') ||
