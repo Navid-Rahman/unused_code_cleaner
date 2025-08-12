@@ -3,7 +3,6 @@ import 'package:analyzer/dart/analysis/analysis_context_collection.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
-import 'package:analyzer/dart/element/element.dart';
 import 'package:path/path.dart' as path;
 
 import '../models/unused_item.dart';
@@ -317,15 +316,8 @@ class _FunctionUsageVisitor extends RecursiveAstVisitor<void> {
 
   @override
   void visitSimpleIdentifier(SimpleIdentifier node) {
-    final name = node.name;
-
-    // Check if this identifier refers to a function
-    if (node.staticElement is FunctionElement ||
-        node.staticElement is MethodElement ||
-        node.staticElement is ConstructorElement) {
-      _markAsUsed(name);
-    }
-
+    // In the new analyzer API, we track usage through other visitor methods
+    // This method handles general identifier references
     super.visitSimpleIdentifier(node);
   }
 

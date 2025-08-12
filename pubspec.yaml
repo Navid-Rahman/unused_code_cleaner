@@ -22,7 +22,7 @@ platforms:
   windows:
 
 dependencies:
-  analyzer: ">=6.11.0 <8.0.0"
+  analyzer: ">=6.11.0 <8.1.1"
   args: ^2.7.0
   cli_util: ^0.4.2
   colorize: ^3.0.0

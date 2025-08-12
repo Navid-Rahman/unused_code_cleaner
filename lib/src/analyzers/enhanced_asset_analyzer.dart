@@ -348,7 +348,7 @@ class _AssetUsageVisitor extends RecursiveAstVisitor<void> {
   bool _isAssetMethod(MethodInvocation node) {
     final methodName = node.methodName.name;
     final targetType =
-        node.target?.staticType?.getDisplayString(withNullability: false);
+        node.target?.staticType?.getDisplayString();
 
     return (methodName == 'asset' && targetType == 'Image') ||
         (methodName == 'loadString' && targetType == 'rootBundle') ||
@@ -357,7 +357,7 @@ class _AssetUsageVisitor extends RecursiveAstVisitor<void> {
   }
 
   bool _isAssetConstructor(InstanceCreationExpression node) {
-    final typeName = node.staticType?.getDisplayString(withNullability: false);
+    final typeName = node.staticType?.getDisplayString();
     return typeName == 'AssetImage' ||
         typeName == 'ExactAssetImage' ||
         typeName?.contains('AssetBundle') == true;
